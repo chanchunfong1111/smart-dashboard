@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-black overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Smart Display Dashboard — OPPO A3 Edition</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            oled: '#000000',
+            surface: '#0f0f12',
+            surfaceBorder: '#23232b',
+            accent: '#38bdf8'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Inter & Mono Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --app-height: 100dvh;
+      --app-width: 100dvw;
+    }
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden !important;
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      background-color: #000000;
+    }
+    .font-time {
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.05em;
+    }
+    /* Hide scrollbars for clean kiosk look while allowing internal widget scroll */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Glassmorphism subtle surfaces */
+    .glass-card {
+      background: rgba(16, 16, 20, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* OPPO A3 (20:9 Landscape ~802x360 CSS px) Simulator Frame for Desktop Testing */
+    body.frame-sim-active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #18181b 0%, #050507 100%);
+    }
+    body.frame-sim-active #burn-in-wrapper {
+      width: min(96vw, calc(90vh * (20 / 9))) !important;
+      height: min(90vh, calc(96vw * (9 / 20))) !important;
+      max-width: 920px;
+      max-height: 414px;
+      border: 3px solid #27272a;
+      border-radius: 28px;
+      padding: 10px 14px;
+      background-color: #000000;
+      box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    /* Bedside / Nightstand Mode Palette */
+    body.bedside-active,
+    body.bedside-active #burn-in-wrapper {
+      background-color: #020000 !important;
+    }
+    body.bedside-active .glass-card {
+      background: rgba(14, 3, 0, 0.85) !important;
+      border-color: rgba(234, 88, 12, 0.16) !important;
+      box-shadow: none !important;
+    }
+    body.bedside-active * {
+      color: #ea580c !important;
+      border-color: rgba(234, 88, 12, 0.18) !important;
+    }
+    body.bedside-active .event-color-bar {
+      background-color: #ea580c !important;
+    }
+    body.bedside-active img, 
+    body.bedside-active svg {
+      stroke: #ea580c !important;
+    }
+
+    /* Subtle OLED burn-in shift container */
+    #burn-in-wrapper {
+      transition: transform 1.5s ease-in-out;
+      width: 100%;
+      height: 100dvh;
+    }
+
+    /* Compact adjustments for ultra-short landscape heights (OPPO A3 ~360px height) */
+    @media (max-height: 430px) {
+      .compact-hide {
+        display: none !important;
+      }
+      .clock-hero-text {
+        font-size: 2.75rem !important;
+        line-height: 1 !important;
+      }
+      .weather-hero-temp {
+        font-size: 2.25rem !important;
+        line-height: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="text-neutral-200 antialiased select-none overflow-hidden">
+
+  <!-- OLED Anti-Burn-In Shifting Container (Locked to 100dvh, zero vertical page scroll) -->
+  <div id="burn-in-wrapper" class="flex flex-col justify-between p-2 sm:p-3 overflow-hidden mx-auto">
+    
+    <!-- TOP STATUS & ACTION BAR (Ultra-compact single row) -->
+    <header class="flex items-center justify-between gap-2 pb-1.5 mb-1.5 border-b border-white/10 text-xs shrink-0">
+      <!-- Left: Location, Refresh & Sun Times -->
+      <div class="flex items-center gap-1.5 min-w-0">
+        <button id="location-picker-btn" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition border border-white/10 text-[11px] font-medium truncate">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+          <span id="current-location-label" class="truncate max-w-[130px] sm:max-w-[180px]">Kasugai, Japan</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-neutral-400 shrink-0"></i>
+        </button>
+
+        <button id="manual-refresh-btn" title="Refresh Weather & Calendar" class="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-neutral-100 transition active:rotate-180 shrink-0">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <span id="sun-status-badge" class="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-[10px] text-neutral-300 shrink-0">
+          <i data-lucide="sun" class="w-3 h-3 text-amber-400"></i>
+          <span id="sun-times-summary">Sunrise 06:05</span>
+        </span>
+
+        <span id="last-updated-text" class="hidden md:inline text-[10px] text-neutral-500 truncate">Synced</span>
+      </div>
+
+      <!-- Right: Aspect Ratio Frame Toggle, Wake Lock, Bedside, Fullscreen, Settings -->
+      <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <!-- OPPO A3 20:9 Aspect Preview Button (Helpful on desktop, subtle on phone) -->
+        <button id="frame-sim-btn" title="Toggle OPPO A3 (20:9) Frame Preview" class="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-neutral-400 transition">
+          <i data-lucide="smartphone" class="w-3 h-3 text-sky-400"></i>
+          <span>20:9 A3</span>
+        </button>
+
+        <!-- Screen Wake Lock Badge -->
+        <div id="wakelock-badge" title="Screen Wake Lock (Always-on)" class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 cursor-pointer">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="hidden sm:inline">AWAKE</span>
+        </div>
+
+        <!-- Bedside Nightstand Mode Toggle -->
+        <button id="bedside-toggle-btn" title="Toggle Bedside / Red Nightstand Mode" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-neutral-300 transition">
+          <i data-lucide="moon" class="w-3.5 h-3.5 text-amber-400"></i>
+        </button>
+
+        <!-- Fullscreen Toggle -->
+        <button id="fullscreen-toggle-btn" title="Toggle Fullscreen (Hide Browser Bars)" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-neutral-300 transition">
+          <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <!-- Settings Modal Trigger -->
+        <button id="settings-toggle-btn" title="Display Settings" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-neutral-300 transition">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN 20:9 ZERO-SCROLL BENTO GRID (3 Columns in Landscape: Clock+Notes | Google Calendar Agenda | Weather+Tabs) -->
+    <main class="grid grid-cols-12 gap-2 sm:gap-2.5 flex-1 min-h-0 overflow-hidden">
+      
+      <!-- COLUMN 1 (4 Cols): Digital Clock + Quick Notes Checklist -->
+      <section class="col-span-4 flex flex-col gap-2 min-h-0 overflow-hidden">
+        
+        <!-- Digital Clock Card -->
+        <div class="glass-card rounded-2xl p-2.5 sm:p-3.5 flex flex-col justify-center items-center text-center relative overflow-hidden shrink-0">
+          <div class="absolute -top-8 -left-8 w-28 h-28 bg-sky-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute -bottom-8 -right-8 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <!-- Time Display -->
+          <div class="flex items-baseline justify-center font-time font-bold tracking-tighter text-white drop-shadow-sm">
+            <span id="clock-hours-mins" class="clock-hero-text text-4xl sm:text-5xl lg:text-6xl leading-none">09:41</span>
+            <span id="clock-seconds" class="text-base sm:text-xl text-neutral-400 ml-1 font-light">45</span>
+            <span id="clock-ampm" class="text-[11px] sm:text-xs text-sky-400 ml-1 font-semibold self-start mt-1">AM</span>
+          </div>
+
+          <!-- Formatted Date & Week Badges -->
+          <div class="mt-1.5 flex items-center justify-center gap-1.5 flex-wrap">
+            <span id="date-display" class="text-xs sm:text-sm font-medium text-neutral-200">Saturday, Oct 24</span>
+            <span class="text-neutral-600">•</span>
+            <span id="week-number-badge" class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-neutral-400">W43</span>
+            <span id="day-of-year-badge" class="hidden xl:inline px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-neutral-400">Day 297</span>
+          </div>
+        </div>
+
+        <!-- Quick Notes / Checklist Card -->
+        <div class="glass-card rounded-2xl p-2.5 sm:p-3 flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/5 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <i data-lucide="check-square" class="w-3.5 h-3.5 text-sky-400"></i>
+              <h2 class="text-[11px] font-semibold tracking-wider uppercase text-neutral-300">Quick Notes</h2>
+            </div>
+            <span id="notes-count-badge" class="text-[10px] text-neutral-500">0 open</span>
+          </div>
+
+          <!-- Scrollable Notes Container -->
+          <div id="notes-container" class="flex-1 min-h-0 overflow-y-auto space-y-1 pr-0.5 text-xs">
+            <!-- Populated via JS -->
+          </div>
+
+          <!-- Compact Quick Add Input -->
+          <form id="new-note-form" class="mt-1.5 pt-1.5 border-t border-white/5 flex items-center gap-1.5 shrink-0">
+            <input 
+              type="text" 
+              id="new-note-input" 
+              placeholder="Add note..." 
+              maxlength="80"
+              class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-[11px] text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-sky-500/50"
+            />
+            <button type="submit" class="p-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 transition active:scale-95 shrink-0">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            </button>
+          </form>
+        </div>
+
+      </section>
+
+      <!-- COLUMN 2 (4 Cols): Google Calendar Color-Coded Agenda Widget -->
+      <section class="col-span-4 flex flex-col min-h-0 overflow-hidden">
+        <div class="glass-card rounded-2xl p-2.5 sm:p-3 flex flex-col flex-1 min-h-0 overflow-hidden">
+          <!-- Agenda Header -->
+          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/5 shrink-0">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+              <h2 class="text-[11px] font-semibold tracking-wider uppercase text-neutral-300 truncate">Agenda</h2>
+              <span id="agenda-source-badge" class="px-1.5 py-0.2 rounded-full text-[9px] bg-sky-500/10 text-sky-400 border border-sky-500/20 font-mono">GCal</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button id="open-add-event-btn" title="Add Event" class="p-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition">
+                <i data-lucide="plus" class="w-3 h-3"></i>
+              </button>
+              <button id="open-calendar-modal-btn" title="Connect Google Calendar (.ics) & Colors" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 text-[10px] font-medium transition">
+                <i data-lucide="link" class="w-2.5 h-2.5"></i>
+                <span>Sync</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category / Calendar Color Legend Strip -->
+          <div id="calendar-legend-row" class="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1 border-b border-white/5 shrink-0 text-[10px]">
+            <!-- Populated dynamically with active calendars/categories -->
+          </div>
+
+          <!-- Agenda Events Scrollable List (Internal scroll only if many events) -->
+          <div id="agenda-events-container" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- COLUMN 3 (4 Cols): Weather Hero + Tabbed Hourly / 5-Day Forecast -->
+      <section class="col-span-4 flex flex-col gap-2 min-h-0 overflow-hidden">
+        
+        <!-- Compact Weather Hero + 4 Key Metrics -->
+        <div class="glass-card rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shrink-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-1.5">
+                <span id="current-temp" class="weather-hero-temp text-3xl sm:text-4xl font-extrabold tracking-tighter text-white font-time leading-none">--°</span>
+                <span id="temp-unit-display" class="text-sm text-neutral-400 font-normal">°C</span>
+                <span id="weather-condition-desc" class="text-xs font-semibold text-sky-400 truncate ml-1">Loading...</span>
+              </div>
+              <div class="text-[10px] text-neutral-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>Feels <strong id="feels-like-temp" class="text-neutral-200">--°</strong></span>
+                <span>•</span>
+                <span>H:<strong id="today-high" class="text-neutral-200">--°</strong> L:<strong id="today-low" class="text-neutral-200">--°</strong></span>
+                <span class="hidden sm:inline">•</span>
+                <span id="weather-city-subtitle" class="hidden sm:inline text-neutral-400 truncate">Kasugai</span>
+              </div>
+            </div>
+
+            <!-- Weather Hero Icon -->
+            <div id="weather-hero-icon-container" class="p-2 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-amber-400 shrink-0">
+              <i data-lucide="cloud-sun" class="w-7 h-7 sm:w-8 sm:h-8"></i>
+            </div>
+          </div>
+
+          <!-- 4-Column Ultra-Compact Metric Strip -->
+          <div class="grid grid-cols-4 gap-1.5 mt-2 pt-2 border-t border-white/5 text-center">
+            <div class="bg-white/5 rounded-lg py-1 px-1 border border-white/5">
+              <p class="text-[9px] uppercase text-neutral-400 flex items-center justify-center gap-0.5">
+                <i data-lucide="droplets" class="w-2.5 h-2.5 text-sky-400"></i>Hum
+              </p>
+              <p id="metric-humidity" class="text-[11px] font-bold text-neutral-100 font-time">--%</p>
+            </div>
+            <div class="bg-white/5 rounded-lg py-1 px-1 border border-white/5">
+              <p class="text-[9px] uppercase text-neutral-400 flex items-center justify-center gap-0.5">
+                <i data-lucide="wind" class="w-2.5 h-2.5 text-teal-400"></i>Wind
+              </p>
+              <p id="metric-wind" class="text-[11px] font-bold text-neutral-100 font-time truncate">--</p>
+            </div>
+            <div class="bg-white/5 rounded-lg py-1 px-1 border border-white/5">
+              <p class="text-[9px] uppercase text-neutral-400 flex items-center justify-center gap-0.5">
+                <i data-lucide="umbrella" class="w-2.5 h-2.5 text-indigo-400"></i>Rain
+              </p>
+              <p id="metric-precip" class="text-[11px] font-bold text-neutral-100 font-time">--%</p>
+            </div>
+            <div class="bg-white/5 rounded-lg py-1 px-1 border border-white/5">
+              <p class="text-[9px] uppercase text-neutral-400 flex items-center justify-center gap-0.5">
+                <i data-lucide="sun-medium" class="w-2.5 h-2.5 text-amber-400"></i>UV
+              </p>
+              <p id="metric-uv" class="text-[11px] font-bold text-neutral-100 font-time">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabbed Forecast Card (Switches between Hourly 24h & 5-Day Outlook to guarantee zero vertical page scroll) -->
+        <div class="glass-card rounded-2xl p-2.5 sm:p-3 flex flex-col flex-1 min-h-0 overflow-hidden">
+          <!-- Tab Switcher Header -->
+          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/5 shrink-0">
+            <div class="flex items-center bg-black/50 p-0.5 rounded-lg border border-white/10 text-[10px]">
+              <button id="tab-btn-hourly" class="px-2.5 py-0.5 rounded-md font-semibold bg-sky-500 text-black transition">
+                Hourly (24h)
+              </button>
+              <button id="tab-btn-daily" class="px-2.5 py-0.5 rounded-md font-medium text-neutral-400 hover:text-neutral-200 transition">
+                5-Day Outlook
+              </button>
+            </div>
+            <span class="text-[9px] text-neutral-500 hidden sm:inline">Open-Meteo</span>
+          </div>
+
+          <!-- Hourly View Panel -->
+          <div id="forecast-panel-hourly" class="flex-1 min-h-0 flex items-center overflow-x-auto gap-1.5 py-0.5 scroll-smooth">
+            <div class="text-xs text-neutral-500 py-2">Loading forecast...</div>
+          </div>
+
+          <!-- 5-Day View Panel (Hidden by default) -->
+          <div id="forecast-panel-daily" class="hidden flex-1 min-h-0 overflow-y-auto space-y-1 pr-0.5">
+            <div class="text-xs text-neutral-500 py-2">Loading 5-day outlook...</div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- ULTRA-SLIM FOOTER -->
+    <footer class="pt-1 mt-1 flex items-center justify-between text-[9px] text-neutral-600 border-t border-white/5 shrink-0">
+      <div class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span>OPPO A3 Smart Display (20:9 Zero-Scroll)</span>
+        <span class="hidden sm:inline">•</span>
+        <span id="burn-in-status-text" class="hidden sm:inline text-neutral-500">OLED Shift: Active</span>
+      </div>
+      <div>
+        <span>Tap 🌙 for Red Nightstand Mode</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: GOOGLE CALENDAR (.ICS) & COLOR-CODING CONFIGURATION              -->
+  <!-- ========================================================================= -->
+  <div id="calendar-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-lg p-4 sm:p-5 shadow-2xl max-h-[92dvh] flex flex-col">
+      <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-neutral-800 shrink-0">
+        <h3 class="text-sm sm:text-base font-bold text-neutral-100 flex items-center gap-2">
+          <i data-lucide="calendar-Sync" class="w-4 h-4 text-sky-400"></i>
+          Google Calendar Feeds & Color Coding
+        </h3>
+        <button id="close-calendar-modal" class="p-1 rounded-full hover:bg-neutral-800 text-neutral-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1 text-xs">
+        <!-- Quick Instructions -->
+        <div class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-neutral-300 text-[11px] leading-relaxed">
+          <p class="font-semibold text-sky-400 mb-0.5">How to plug in your Google Calendar:</p>
+          <ol class="list-decimal list-inside space-y-0.5 text-neutral-300">
+            <li>Open <strong>Google Calendar Settings</strong> on desktop → click your calendar on the left.</li>
+            <li>Scroll to <strong>Integrate calendar</strong> → copy <strong>Secret address in iCal format (`.ics`)</strong>.</li>
+            <li>Paste the URL below, assign a label & color, and tap <strong>Add Feed</strong>.</li>
+          </ol>
+        </div>
+
+        <!-- Add New iCal Feed Form -->
+        <form id="add-ical-form" class="space-y-2 bg-neutral-950 p-3 rounded-xl border border-neutral-800">
+          <p class="text-[11px] font-semibold text-neutral-300">Add Google Calendar (.ics) Feed</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input 
+              type="text" 
+              id="ical-name-input" 
+              placeholder="Label (e.g. Work, Personal)" 
+              required
+              class="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-200 focus:outline-none focus:border-sky-500"
+            />
+            <input 
+              type="url" 
+              id="ical-url-input" 
+              placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" 
+              required
+              class="sm:col-span-2 bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1.5 text-xs text-neutral-200 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] text-neutral-400">Color Tag:</span>
+              <div id="ical-color-picker" class="flex items-center gap-1.5">
+                <button type="button" data-color="sky" class="w-5 h-5 rounded-full bg-sky-400 ring-2 ring-white ring-offset-1 ring-offset-neutral-950"></button>
+                <button type="button" data-color="emerald" class="w-5 h-5 rounded-full bg-emerald-400 opacity-60 hover:opacity-100"></button>
+                <button type="button" data-color="amber" class="w-5 h-5 rounded-full bg-amber-400 opacity-60 hover:opacity-100"></button>
+                <button type="button" data-color="rose" class="w-5 h-5 rounded-full bg-rose-400 opacity-60 hover:opacity-100"></button>
+                <button type="button" data-color="violet" class="w-5 h-5 rounded-full bg-violet-400 opacity-60 hover:opacity-100"></button>
+                <button type="button" data-color="orange" class="w-5 h-5 rounded-full bg-orange-400 opacity-60 hover:opacity-100"></button>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <label class="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 cursor-pointer text-[11px] border border-neutral-700 transition">
+                <span>Import .ics File</span>
+                <input type="file" id="ical-file-input" accept=".ics,text/calendar" class="hidden">
+              </label>
+              <button type="submit" class="px-3 py-1 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-semibold text-[11px] transition">
+                + Add Feed
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Connected Calendar Feeds List -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Connected Calendars</span>
+            <button id="sync-calendars-now-btn" class="text-[11px] text-sky-400 hover:underline flex items-center gap-1">
+              <i data-lucide="refresh-cw" class="w-3 h-3"></i> Sync All Now
+            </button>
+          </div>
+          <div id="connected-calendars-list" class="space-y-1.5">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: QUICK ADD LOCAL CALENDAR EVENT                                   -->
+  <!-- ========================================================================= -->
+  <div id="add-event-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-4 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 mb-3 border-b border-neutral-800">
+        <h3 class="text-sm font-bold text-neutral-100 flex items-center gap-2">
+          <i data-lucide="calendar-plus" class="w-4 h-4 text-sky-400"></i>
+          Add Agenda Event
+        </h3>
+        <button id="close-add-event-modal" class="p-1 rounded-full hover:bg-neutral-800 text-neutral-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="custom-event-form" class="space-y-2.5 text-xs">
+        <div>
+          <label class="block text-[11px] text-neutral-400 mb-1">Event Title</label>
+          <input type="text" id="event-title-input" placeholder="e.g. Team Standup, Dentist, Flight" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2 text-neutral-100 focus:outline-none focus:border-sky-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-neutral-400 mb-1">Date</label>
+            <input type="date" id="event-date-input" required class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-2.5 py-1.5 text-neutral-100 focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-[11px] text-neutral-400 mb-1">Time (optional for All-Day)</label>
+            <input type="time" id="event-time-input" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-2.5 py-1.5 text-neutral-100 focus:outline-none focus:border-sky-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-neutral-400 mb-1">Category Label</label>
+            <input type="text" id="event-category-input" placeholder="Work, Personal, Urgent..." value="Personal" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-2.5 py-1.5 text-neutral-100 focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-[11px] text-neutral-400 mb-1">Color Code</label>
+            <select id="event-color-select" class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-2.5 py-1.5 text-neutral-100 focus:outline-none focus:border-sky-500">
+              <option value="sky">🔵 Sky (Work / General)</option>
+              <option value="emerald">🟢 Emerald (Personal / Health)</option>
+              <option value="amber">🟡 Amber (Reminder / Travel)</option>
+              <option value="rose">🔴 Rose (Urgent / Deadline)</option>
+              <option value="violet">🟣 Violet (Social / Family)</option>
+              <option value="orange">🟠 Orange (Fitness / Hobby)</option>
+            </select>
+          </div>
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" id="cancel-add-event-btn" class="px-3 py-1.5 rounded-xl bg-neutral-800 text-neutral-300 text-xs">Cancel</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: LOCATION SEARCH                                                  -->
+  <!-- ========================================================================= -->
+  <div id="location-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-4 shadow-2xl relative">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold text-neutral-100 flex items-center gap-2">
+          <i data-lucide="map-pin" class="w-4 h-4 text-sky-400"></i>
+          Change Location
+        </h3>
+        <button id="close-location-modal" class="p-1 rounded-full hover:bg-neutral-800 text-neutral-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <button id="use-gps-btn" class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 text-xs font-medium mb-2.5 transition">
+        <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+        <span>Use Device Current GPS</span>
+      </button>
+
+      <div class="relative mb-2.5">
+        <input 
+          type="text" 
+          id="city-search-input" 
+          placeholder="Search city (e.g., Tokyo, Johor Bahru, London)..." 
+          class="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-sky-500 pr-8"
+        />
+        <button id="city-search-submit" class="absolute right-2 top-1.5 p-1 text-neutral-400 hover:text-white">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <div id="city-search-results" class="max-h-40 overflow-y-auto space-y-1 text-xs">
+        <p class="text-[11px] text-neutral-500 text-center py-3">Type a city name to search using Open-Meteo</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: DISPLAY SETTINGS                                                 -->
+  <!-- ========================================================================= -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md p-4 shadow-2xl relative max-h-[90dvh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold text-neutral-100 flex items-center gap-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i>
+          Display Settings
+        </h3>
+        <button id="close-settings-modal" class="p-1 rounded-full hover:bg-neutral-800 text-neutral-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-neutral-950 border border-neutral-800">
+          <div>
+            <p class="font-medium text-neutral-200">24-Hour Time Format</p>
+            <p class="text-[10px] text-neutral-500">Switch between 12h AM/PM and 24h</p>
+          </div>
+          <input type="checkbox" id="setting-24h" class="w-4 h-4 accent-sky-500 rounded cursor-pointer">
+        </div>
+
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-neutral-950 border border-neutral-800">
+          <div>
+            <p class="font-medium text-neutral-200">Show Clock Seconds</p>
+            <p class="text-[10px] text-neutral-500">Display running seconds beside the time</p>
+          </div>
+          <input type="checkbox" id="setting-seconds" class="w-4 h-4 accent-sky-500 rounded cursor-pointer">
+        </div>
+
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-neutral-950 border border-neutral-800">
+          <div>
+            <p class="font-medium text-neutral-200">Temperature Unit</p>
+            <p class="text-[10px] text-neutral-500">Celsius (°C) or Fahrenheit (°F)</p>
+          </div>
+          <select id="setting-unit" class="bg-neutral-800 border border-neutral-700 text-neutral-200 text-xs rounded-lg px-2.5 py-1 focus:outline-none">
+            <option value="celsius">Celsius (°C)</option>
+            <option value="fahrenheit">Fahrenheit (°F)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-neutral-950 border border-neutral-800">
+          <div>
+            <p class="font-medium text-neutral-200">OLED Anti-Burn-In Shift</p>
+            <p class="text-[10px] text-neutral-500">Gently shifts pixels 2-3px every 2 mins</p>
+          </div>
+          <input type="checkbox" id="setting-burnin" class="w-4 h-4 accent-sky-500 rounded cursor-pointer" checked>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button id="save-settings-btn" class="px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs transition">
+          Apply & Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- APPLICATION LOGIC SCRIPT                                                  -->
+  <!-- ========================================================================= -->
+  <script>
+    // --- Color Theme Palette for Calendar Events ---
+    const EVENT_COLORS = {
+      sky: {
+        bar: 'bg-sky-400',
+        badge: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+        dot: 'bg-sky-400',
+        cardBg: 'bg-sky-500/[0.06] border-sky-500/20'
+      },
+      emerald: {
+        bar: 'bg-emerald-400',
+        badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        dot: 'bg-emerald-400',
+        cardBg: 'bg-emerald-500/[0.06] border-emerald-500/20'
+      },
+      amber: {
+        bar: 'bg-amber-400',
+        badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        dot: 'bg-amber-400',
+        cardBg: 'bg-amber-500/[0.06] border-amber-500/20'
+      },
+      rose: {
+        bar: 'bg-rose-400',
+        badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+        dot: 'bg-rose-400',
+        cardBg: 'bg-rose-500/[0.06] border-rose-500/20'
+      },
+      violet: {
+        bar: 'bg-violet-400',
+        badge: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+        dot: 'bg-violet-400',
+        cardBg: 'bg-violet-500/[0.06] border-violet-500/20'
+      },
+      orange: {
+        bar: 'bg-orange-400',
+        badge: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+        dot: 'bg-orange-400',
+        cardBg: 'bg-orange-500/[0.06] border-orange-500/20'
+      }
+    };
+
+    // Smart auto-color inference based on event title keywords if not explicitly overridden
+    function inferColorFromText(text, fallbackColor = 'sky') {
+      const lower = (text || '').toLowerCase();
+      if (/(urgent|deadline|exam|important|alert|doctor|hospital|flight)/.test(lower)) return 'rose';
+      if (/(work|meeting|standup|sync|client|project|denso|office|call)/.test(lower)) return 'sky';
+      if (/(gym|workout|run|fitness|sport|training|football)/.test(lower)) return 'orange';
+      if (/(birthday|party|dinner|lunch|family|anniversary|movie|date)/.test(lower)) return 'violet';
+      if (/(pay|bill|bank|renew|shopping|groceries|reminder|trip)/.test(lower)) return 'amber';
+      if (/(personal|study|read|meditate|health|utm|class)/.test(lower)) return 'emerald';
+      return fallbackColor;
+    }
+
+    // --- Configuration & State Management ---
+    const DEFAULT_CONFIG = {
+      is24Hour: false,
+      showSeconds: true,
+      tempUnit: 'celsius',
+      burnInProtection: true,
+      bedsideMode: false,
+      frameSim: false,
+      activeForecastTab: 'hourly',
+      location: {
+        name: 'Kasugai, Japan',
+        shortName: 'Kasugai',
+        lat: 35.25,
+        lon: 136.97
+      }
+    };
+
+    let config = { ...DEFAULT_CONFIG };
+    let weatherData = null;
+    let wakeLock = null;
+    let notes = [];
+    let calendarFeeds = [];   // Array of { id, name, url, color, enabled }
+    let localEvents = [];     // Array of { id, title, startIso, endIso, allDay, category, color }
+    let fetchedIcsEvents = []; // Parsed from .ics URLs or imported .ics files
+    let lastCitySearchResults = [];
+    let selectedIcalColor = 'sky';
+    let activeCategoryFilter = 'ALL';
+
+    // --- Weather WMO Codes Map ---
+    const WMO_MAP = {
+      0: { label: 'Clear Sky', icon: 'sun', nightIcon: 'moon' },
+      1: { label: 'Mainly Clear', icon: 'cloud-sun', nightIcon: 'cloud-moon' },
+      2: { label: 'Partly Cloudy', icon: 'cloud-sun', nightIcon: 'cloud-moon' },
+      3: { label: 'Overcast', icon: 'cloud', nightIcon: 'cloud' },
+      45: { label: 'Foggy', icon: 'cloud-fog', nightIcon: 'cloud-fog' },
+      48: { label: 'Rime Fog', icon: 'cloud-fog', nightIcon: 'cloud-fog' },
+      51: { label: 'Light Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      53: { label: 'Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      55: { label: 'Dense Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      61: { label: 'Slight Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      63: { label: 'Moderate Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      65: { label: 'Heavy Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      71: { label: 'Slight Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      73: { label: 'Moderate Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      75: { label: 'Heavy Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      77: { label: 'Snow Grains', icon: 'snowflake', nightIcon: 'snowflake' },
+      80: { label: 'Light Showers', icon: 'cloud-sun-rain', nightIcon: 'cloud-rain' },
+      81: { label: 'Showers', icon: 'cloud-sun-rain', nightIcon: 'cloud-rain' },
+      82: { label: 'Heavy Showers', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      85: { label: 'Snow Showers', icon: 'snowflake', nightIcon: 'snowflake' },
+      86: { label: 'Heavy Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      95: { label: 'Thunderstorm', icon: 'cloud-lightning', nightIcon: 'cloud-lightning' },
+      96: { label: 'Storm w/ Hail', icon: 'cloud-lightning', nightIcon: 'cloud-lightning' },
+      99: { label: 'Heavy Storm', icon: 'cloud-lightning', nightIcon: 'cloud-lightning' }
+    };
+
+    function getWeatherMetadata(code, isDay = 1) {
+      const match = WMO_MAP[code] || { label: 'Variable', icon: 'cloud', nightIcon: 'cloud' };
+      return {
+        label: match.label,
+        icon: isDay ? match.icon : match.nightIcon
+      };
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- LocalStorage State Persistence ---
+    function loadSavedState() {
+      try {
+        const storedConfig = localStorage.getItem('smart_display_config');
+        if (storedConfig) {
+          config = { ...config, ...JSON.parse(storedConfig) };
+        }
+
+        const storedNotes = localStorage.getItem('smart_display_notes');
+        if (storedNotes) {
+          notes = JSON.parse(storedNotes);
+        } else {
+          notes = [
+            { id: 1, text: 'Stay hydrated today 💧', completed: false },
+            { id: 2, text: 'Dock OPPO A3 on stand 🔌', completed: true }
+          ];
+          saveNotes();
+        }
+
+        const storedFeeds = localStorage.getItem('smart_display_cal_feeds');
+        if (storedFeeds) {
+          calendarFeeds = JSON.parse(storedFeeds);
+        }
+
+        const storedCachedIcs = localStorage.getItem('smart_display_cached_ics_events');
+        if (storedCachedIcs) {
+          fetchedIcsEvents = JSON.parse(storedCachedIcs);
+        }
+
+        const storedLocalEvents = localStorage.getItem('smart_display_local_events');
+        if (storedLocalEvents) {
+          localEvents = JSON.parse(storedLocalEvents);
+        } else {
+          // Seed sample color-coded upcoming events for immediate visual layout
+          const now = new Date();
+          const todayStr = formatLocalDateYMD(now);
+          const tmrw = new Date(now.getTime() + 86400000);
+          const tmrwStr = formatLocalDateYMD(tmrw);
+          const day3 = new Date(now.getTime() + 2 * 86400000);
+          const day3Str = formatLocalDateYMD(day3);
+
+          localEvents = [
+            {
+              id: 101,
+              title: 'Engineering Sprint Sync',
+              startIso: `${todayStr}T10:00:00`,
+              allDay: false,
+              category: 'Work',
+              color: 'sky'
+            },
+            {
+              id: 102,
+              title: 'Evening Gym & Cardio',
+              startIso: `${todayStr}T18:30:00`,
+              allDay: false,
+              category: 'Fitness',
+              color: 'orange'
+            },
+            {
+              id: 103,
+              title: 'Project Milestone Review',
+              startIso: `${tmrwStr}T14:00:00`,
+              allDay: false,
+              category: 'Urgent',
+              color: 'rose'
+            },
+            {
+              id: 104,
+              title: 'Family Dinner & Catchup',
+              startIso: `${day3Str}`,
+              allDay: true,
+              category: 'Family',
+              color: 'violet'
+            }
+          ];
+          saveLocalEvents();
+        }
+      } catch (e) {
+        console.error('Error loading stored state:', e);
+      }
+    }
+
+    function formatLocalDateYMD(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function saveConfig() {
+      try {
+        localStorage.setItem('smart_display_config', JSON.stringify(config));
+      } catch (e) {
+        console.error('Error saving config:', e);
+      }
+    }
+
+    function saveNotes() {
+      try {
+        localStorage.setItem('smart_display_notes', JSON.stringify(notes));
+      } catch (e) {
+        console.error('Error saving notes:', e);
+      }
+      renderNotes();
+    }
+
+    function saveCalendarFeeds() {
+      try {
+        localStorage.setItem('smart_display_cal_feeds', JSON.stringify(calendarFeeds));
+      } catch (e) {
+        console.error('Error saving feeds:', e);
+      }
+    }
+
+    function saveLocalEvents() {
+      try {
+        localStorage.setItem('smart_display_local_events', JSON.stringify(localEvents));
+      } catch (e) {
+        console.error('Error saving local events:', e);
+      }
+      renderAgenda();
+    }
+
+    // --- Clock, Date & Calendar Calculation ---
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      let ampm = '';
+      if (!config.is24Hour) {
+        ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+      }
+      const formattedHours = config.is24Hour ? String(hours).padStart(2, '0') : String(hours);
+
+      const hoursMinsEl = document.getElementById('clock-hours-mins');
+      const secondsEl = document.getElementById('clock-seconds');
+      const ampmEl = document.getElementById('clock-ampm');
+
+      if (hoursMinsEl) hoursMinsEl.textContent = `${formattedHours}:${minutes}`;
+      if (secondsEl) {
+        secondsEl.textContent = seconds;
+        secondsEl.style.display = config.showSeconds ? 'inline' : 'none';
+      }
+      if (ampmEl) {
+        ampmEl.textContent = ampm;
+        ampmEl.style.display = config.is24Hour ? 'none' : 'inline';
+      }
+
+      const dateEl = document.getElementById('date-display');
+      if (dateEl) {
+        const options = { weekday: 'short', month: 'short', day: 'numeric' };
+        dateEl.textContent = now.toLocaleDateString(undefined, options);
+      }
+
+      const weekEl = document.getElementById('week-number-badge');
+      const dayOfYearEl = document.getElementById('day-of-year-badge');
+      if (weekEl) weekEl.textContent = `W${getWeekNumber(now)}`;
+      if (dayOfYearEl) dayOfYearEl.textContent = `Day ${getDayOfYear(now)}`;
+    }
+
+    function getWeekNumber(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+
+    function getDayOfYear(d) {
+      const start = new Date(d.getFullYear(), 0, 0);
+      const diff = d - start;
+      return Math.floor(diff / 86400000);
+    }
+
+    // --- Weather Fetching via Open-Meteo (with Fixed Local Timezone Indexing) ---
+    async function fetchWeather() {
+      const updateText = document.getElementById('last-updated-text');
+      if (updateText) updateText.textContent = 'Syncing...';
+
+      const unitParam = config.tempUnit === 'fahrenheit' 
+        ? '&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch' 
+        : '&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm';
+
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${config.location.lat}&longitude=${config.location.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=7${unitParam}`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Weather API error: ' + response.status);
+        weatherData = await response.json();
+        renderWeather();
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (updateText) updateText.textContent = `Synced ${timeStr}`;
+      } catch (err) {
+        console.error('Weather Fetch Failed:', err);
+        if (updateText) updateText.textContent = 'Offline';
+      }
+    }
+
+    function renderWeather() {
+      if (!weatherData || !weatherData.current) return;
+
+      const current = weatherData.current;
+      const daily = weatherData.daily;
+      const hourly = weatherData.hourly;
+      const isDay = current.is_day !== undefined ? current.is_day : 1;
+      const meta = getWeatherMetadata(current.weather_code, isDay);
+
+      document.getElementById('current-temp').textContent = `${Math.round(current.temperature_2m)}°`;
+      document.getElementById('temp-unit-display').textContent = config.tempUnit === 'fahrenheit' ? 'F' : 'C';
+      document.getElementById('weather-condition-desc').textContent = meta.label;
+      document.getElementById('feels-like-temp').textContent = `${Math.round(current.apparent_temperature)}°`;
+      
+      if (daily && daily.temperature_2m_max && daily.temperature_2m_max.length > 0) {
+        document.getElementById('today-high').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
+        document.getElementById('today-low').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
+      }
+
+      const iconContainer = document.getElementById('weather-hero-icon-container');
+      iconContainer.innerHTML = `<i data-lucide="${meta.icon}" class="w-7 h-7 sm:w-8 sm:h-8"></i>`;
+
+      document.getElementById('metric-humidity').textContent = `${current.relative_humidity_2m}%`;
+      const windUnit = config.tempUnit === 'fahrenheit' ? 'mph' : 'km/h';
+      document.getElementById('metric-wind').textContent = `${Math.round(current.wind_speed_10m)} ${windUnit}`;
+
+      // Fix: Find current hour index using Open-Meteo's own location-aware `current.time`
+      const currentHourIdx = findCurrentHourIndex(hourly, current.time);
+      const precipProb = (hourly && hourly.precipitation_probability && hourly.precipitation_probability[currentHourIdx] !== undefined)
+        ? hourly.precipitation_probability[currentHourIdx]
+        : 0;
+      document.getElementById('metric-precip').textContent = `${precipProb}%`;
+
+      const uv = (daily && daily.uv_index_max && daily.uv_index_max[0] !== undefined)
+        ? Math.round(daily.uv_index_max[0])
+        : '--';
+      document.getElementById('metric-uv').textContent = `${uv}`;
+
+      if (daily && daily.sunrise && daily.sunset) {
+        const sunriseDate = new Date(daily.sunrise[0]);
+        const sunsetDate = new Date(daily.sunset[0]);
+        const sunFmt = { hour: '2-digit', minute: '2-digit', hour12: !config.is24Hour };
+        const sunSummaryEl = document.getElementById('sun-times-summary');
+        if (sunSummaryEl) {
+          sunSummaryEl.textContent = isDay
+            ? `Sunset ${sunsetDate.toLocaleTimeString([], sunFmt)}`
+            : `Sunrise ${sunriseDate.toLocaleTimeString([], sunFmt)}`;
+        }
+      }
+
+      renderHourly(hourly, current.time);
+      renderDaily(daily);
+      lucide.createIcons();
+    }
+
+    // Fixed helper: compares target location's current.time ("YYYY-MM-DDTHH:MM") with hourly.time ("YYYY-MM-DDTHH:00")
+    function findCurrentHourIndex(hourly, currentLocationTimeStr) {
+      if (!hourly || !hourly.time || hourly.time.length === 0) return 0;
+      if (currentLocationTimeStr && currentLocationTimeStr.length >= 13) {
+        const prefix = currentLocationTimeStr.slice(0, 13);
+        const idx = hourly.time.findIndex(t => t.slice(0, 13) >= prefix);
+        if (idx !== -1) return idx;
+      }
+      // Fallback to local device clock formatted as YYYY-MM-DDTHH
+      const now = new Date();
+      const localPrefix = `${formatLocalDateYMD(now)}T${String(now.getHours()).padStart(2, '0')}`;
+      const fallbackIdx = hourly.time.findIndex(t => t.slice(0, 13) >= localPrefix);
+      return fallbackIdx !== -1 ? fallbackIdx : 0;
+    }
+
+    function renderHourly(hourly, currentLocationTimeStr) {
+      const container = document.getElementById('forecast-panel-hourly');
+      if (!hourly || !hourly.time) return;
+
+      const startIndex = findCurrentHourIndex(hourly, currentLocationTimeStr);
+      const itemsToShow = 16;
+      let html = '';
+
+      for (let i = startIndex; i < startIndex + itemsToShow && i < hourly.time.length; i++) {
+        const itemTime = new Date(hourly.time[i]);
+        const isNow = i === startIndex;
+        const hourLabel = isNow
+          ? 'Now'
+          : itemTime.toLocaleTimeString([], { hour: 'numeric', hour12: !config.is24Hour });
+        const temp = Math.round(hourly.temperature_2m[i]);
+        const code = hourly.weather_code[i];
+        const rainProb = hourly.precipitation_probability ? hourly.precipitation_probability[i] : 0;
+        const isDayHour = (hourly.is_day && hourly.is_day[i] !== undefined)
+          ? hourly.is_day[i]
+          : (itemTime.getHours() >= 6 && itemTime.getHours() < 18 ? 1 : 0);
+        const iconName = getWeatherMetadata(code, isDayHour).icon;
+
+        html += `
+          <div class="flex flex-col items-center justify-between min-w-[48px] p-1.5 rounded-xl ${isNow ? 'bg-sky-500/15 border-sky-500/30' : 'bg-white/5 border-white/5'} border text-center shrink-0 h-full max-h-[110px]">
+            <span class="text-[10px] font-medium ${isNow ? 'text-sky-300 font-bold' : 'text-neutral-400'}">${hourLabel}</span>
+            <div class="my-1 text-sky-400">
+              <i data-lucide="${iconName}" class="w-4 h-4"></i>
+            </div>
+            <span class="text-[11px] font-bold text-neutral-100 font-time">${temp}°</span>
+            ${rainProb > 15 ? `<span class="text-[9px] text-sky-400 leading-none">${rainProb}%</span>` : `<span class="text-[9px] text-neutral-600 leading-none">•</span>`}
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function renderDaily(daily) {
+      const container = document.getElementById('forecast-panel-daily');
+      if (!daily || !daily.time) return;
+
+      let html = '';
+      const daysCount = Math.min(daily.time.length, 5);
+      let allMin = Math.min(...daily.temperature_2m_min.slice(0, daysCount));
+      let allMax = Math.max(...daily.temperature_2m_max.slice(0, daysCount));
+      const range = (allMax - allMin) || 1;
+
+      for (let i = 0; i < daysCount; i++) {
+        const dateObj = new Date(daily.time[i] + 'T00:00:00');
+        const dayName = i === 0 ? 'Today' : dateObj.toLocaleDateString(undefined, { weekday: 'short' });
+        const code = daily.weather_code[i];
+        const iconName = getWeatherMetadata(code, 1).icon;
+        const minTemp = Math.round(daily.temperature_2m_min[i]);
+        const maxTemp = Math.round(daily.temperature_2m_max[i]);
+
+        const leftPercent = Math.max(0, Math.round(((minTemp - allMin) / range) * 100));
+        const widthPercent = Math.max(15, Math.round(((maxTemp - minTemp) / range) * 100));
+
+        html += `
+          <div class="flex items-center justify-between text-[11px] py-1 px-2 rounded-lg bg-white/5 border border-white/5">
+            <span class="w-11 font-medium text-neutral-300 truncate">${dayName}</span>
+            <div class="flex items-center justify-center w-6 text-sky-400">
+              <i data-lucide="${iconName}" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex-1 mx-2 flex items-center gap-1.5">
+              <span class="text-neutral-500 text-[10px] w-5 text-right font-time">${minTemp}°</span>
+              <div class="flex-1 h-1.5 bg-neutral-800 rounded-full overflow-hidden relative">
+                <div class="absolute h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-400" style="left:${leftPercent}%; width:${widthPercent}%;"></div>
+              </div>
+              <span class="text-neutral-200 text-[10px] w-5 text-left font-time font-bold">${maxTemp}°</span>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function setForecastTab(tab) {
+      config.activeForecastTab = tab;
+      saveConfig();
+      const btnHourly = document.getElementById('tab-btn-hourly');
+      const btnDaily = document.getElementById('tab-btn-daily');
+      const panelHourly = document.getElementById('forecast-panel-hourly');
+      const panelDaily = document.getElementById('forecast-panel-daily');
+
+      if (tab === 'daily') {
+        btnDaily.className = 'px-2.5 py-0.5 rounded-md font-semibold bg-sky-500 text-black transition';
+        btnHourly.className = 'px-2.5 py-0.5 rounded-md font-medium text-neutral-400 hover:text-neutral-200 transition';
+        panelHourly.classList.add('hidden');
+        panelDaily.classList.remove('hidden');
+      } else {
+        btnHourly.className = 'px-2.5 py-0.5 rounded-md font-semibold bg-sky-500 text-black transition';
+        btnDaily.className = 'px-2.5 py-0.5 rounded-md font-medium text-neutral-400 hover:text-neutral-200 transition';
+        panelDaily.classList.add('hidden');
+        panelHourly.classList.remove('hidden');
+      }
+    }
+
+    // =========================================================================
+    // GOOGLE CALENDAR (.ICS) PARSER & COLOR-CODED AGENDA ENGINE
+    // =========================================================================
+
+    // Fetch .ics feed using multi-proxy CORS fallback so Google Calendar secret links work in browser
+    async function fetchIcsTextWithFallback(rawUrl) {
+      const proxies = [
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+        (u) => u
+      ];
+
+      for (const buildUrl of proxies) {
+        try {
+          const target = buildUrl(rawUrl);
+          const res = await fetch(target, { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.includes('BEGIN:VCALENDAR')) {
+              return text;
+            }
+          }
+        } catch (err) {
+          // Try next proxy
+        }
+      }
+      throw new Error('Could not retrieve iCal feed via proxies.');
+    }
+
+    // Parse RFC 5545 .ics content into upcoming event objects
+    function parseIcsContent(icsText, calendarName = 'Google Calendar', defaultColor = 'sky') {
+      if (!icsText || !icsText.includes('BEGIN:VEVENT')) return [];
+
+      // Unfold RFC 5545 folded lines (CRLF + space/tab)
+      const unfolded = icsText.replace(/\r?\n[ \t]/g, '');
+      const lines = unfolded.split(/\r?\n/);
+
+      const events = [];
+      let current = null;
+      const now = new Date();
+      const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Start of today
+      const windowEnd = new Date(windowStart.getTime() + 45 * 86400000); // Next 45 days
+
+      for (const line of lines) {
+        if (line === 'BEGIN:VEVENT') {
+          current = {};
+          continue;
+        }
+        if (line === 'END:VEVENT') {
+          if (current && current.dtstart && current.summary) {
+            const parsedInstances = expandIcsEvent(current, calendarName, defaultColor, windowStart, windowEnd);
+            events.push(...parsedInstances);
+          }
+          current = null;
+          continue;
+        }
+        if (!current) continue;
+
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) continue;
+        const propPart = line.slice(0, colonIdx);
+        const valPart = line.slice(colonIdx + 1).trim();
+        const propName = propPart.split(';')[0].toUpperCase();
+
+        if (propName === 'SUMMARY') {
+          current.summary = unescapeIcsText(valPart);
+        } else if (propName === 'DTSTART') {
+          current.dtstart = valPart;
+          current.dtstartRawProp = propPart;
+        } else if (propName === 'DTEND') {
+          current.dtend = valPart;
+        } else if (propName === 'CATEGORIES') {
+          current.categories = unescapeIcsText(valPart);
+        } else if (propName === 'COLOR' || propName === 'X-APPLE-CALENDAR-COLOR') {
+          current.rawColor = valPart;
+        } else if (propName === 'RRULE') {
+          current.rrule = valPart;
+        } else if (propName === 'UID') {
+          current.uid = valPart;
+        }
+      }
+      return events;
+    }
+
+    function unescapeIcsText(txt) {
+      return txt
+        .replace(/\\n/gi, ' ')
+        .replace(/\\,/g, ',')
+        .replace(/\\;/g, ';')
+        .replace(/\\\\/g, '\\');
+    }
+
+    function parseIcsDate(val, propMeta = '') {
+      if (!val) return null;
+      // All-day date: YYYYMMDD
+      if (/^\d{8}$/.test(val) || propMeta.includes('VALUE=DATE')) {
+        const y = parseInt(val.slice(0, 4), 10);
+        const m = parseInt(val.slice(4, 6), 10) - 1;
+        const d = parseInt(val.slice(6, 8), 10);
+        return { date: new Date(y, m, d, 0, 0, 0), allDay: true };
+      }
+      // Date-Time: YYYYMMDDTHHMMSS(Z)
+      const match = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
+      if (match) {
+        const [, y, m, d, hh, mm, ss, isUtc] = match;
+        const dateObj = isUtc
+          ? new Date(Date.UTC(+y, +m - 1, +d, +hh, +mm, +ss))
+          : new Date(+y, +m - 1, +d, +hh, +mm, +ss);
+        return { date: dateObj, allDay: false };
+      }
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : { date: parsed, allDay: false };
+    }
+
+    function expandIcsEvent(raw, calendarName, defaultColor, windowStart, windowEnd) {
+      const startInfo = parseIcsDate(raw.dtstart, raw.dtstartRawProp || '');
+      if (!startInfo) return [];
+
+      const category = raw.categories || calendarName;
+      const color = inferColorFromText(`${raw.summary} ${category}`, defaultColor);
+      const results = [];
+
+      const baseDate = startInfo.date;
+      const isAllDay = startInfo.allDay;
+
+      // Handle basic RRULE (FREQ=DAILY, WEEKLY, MONTHLY, YEARLY) for upcoming window
+      if (raw.rrule) {
+        const freqMatch = raw.rrule.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i);
+        if (freqMatch) {
+          const freq = freqMatch[1].toUpperCase();
+          let cursor = new Date(baseDate.getTime());
+          let safety = 0;
+          while (cursor <= windowEnd && safety < 500) {
+            safety++;
+            if (cursor >= windowStart) {
+              results.push({
+                id: `${raw.uid || raw.summary}_${cursor.getTime()}`,
+                title: raw.summary,
+                startIso: isAllDay ? formatLocalDateYMD(cursor) : cursor.toISOString(),
+                allDay: isAllDay,
+                category,
+                color,
+                isExternal: true
+              });
+            }
+            if (freq === 'DAILY') cursor.setDate(cursor.getDate() + 1);
+            else if (freq === 'WEEKLY') cursor.setDate(cursor.getDate() + 7);
+            else if (freq === 'MONTHLY') cursor.setMonth(cursor.getMonth() + 1);
+            else if (freq === 'YEARLY') cursor.setFullYear(cursor.getFullYear() + 1);
+          }
+          return results;
+        }
+      }
+
+      if (baseDate >= windowStart && baseDate <= windowEnd) {
+        results.push({
+          id: raw.uid || `${raw.summary}_${baseDate.getTime()}`,
+          title: raw.summary,
+          startIso: isAllDay ? formatLocalDateYMD(baseDate) : baseDate.toISOString(),
+          allDay: isAllDay,
+          category,
+          color,
+          isExternal: true
+        });
+      }
+      return results;
+    }
+
+    async function syncAllCalendarFeeds() {
+      const badge = document.getElementById('agenda-source-badge');
+      if (calendarFeeds.length === 0) {
+        renderAgenda();
+        return;
+      }
+
+      if (badge) badge.textContent = 'Syncing...';
+      let combined = [];
+
+      for (const feed of calendarFeeds) {
+        if (feed.enabled === false) continue;
+        if (feed.rawIcsContent) {
+          const parsed = parseIcsContent(feed.rawIcsContent, feed.name, feed.color);
+          combined.push(...parsed);
+        } else if (feed.url) {
+          try {
+            const icsText = await fetchIcsTextWithFallback(feed.url);
+            const parsed = parseIcsContent(icsText, feed.name, feed.color);
+            combined.push(...parsed);
+          } catch (err) {
+            console.warn(`Failed to sync feed "${feed.name}":`, err);
+          }
+        }
+      }
+
+      fetchedIcsEvents = combined;
+      try {
+        localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents));
+      } catch (e) {}
+
+      if (badge) badge.textContent = `${calendarFeeds.length} Cal`;
+      renderAgenda();
+      renderConnectedCalendarsList();
+    }
+
+    function getAllUpcomingEvents() {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const all = [...localEvents, ...fetchedIcsEvents].map(ev => {
+        const dateObj = ev.allDay
+          ? new Date(ev.startIso + 'T00:00:00')
+          : new Date(ev.startIso);
+        return { ...ev, dateObj };
+      }).filter(ev => !isNaN(ev.dateObj.getTime()) && ev.dateObj >= startOfToday);
+
+      all.sort((a, b) => a.dateObj - b.dateObj);
+      return all;
+    }
+
+    function formatRelativeDayLabel(dateObj) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const target = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      const diffDays = Math.round((target - today) / 86400000);
+
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Tomorrow';
+      if (diffDays > 1 && diffDays < 7) {
+        return dateObj.toLocaleDateString(undefined, { weekday: 'short' });
+      }
+      return dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function renderAgenda() {
+      const container = document.getElementById('agenda-events-container');
+      const legendRow = document.getElementById('calendar-legend-row');
+      if (!container) return;
+
+      const allEvents = getAllUpcomingEvents();
+
+      // Build category filter pills
+      const categoriesMap = {};
+      allEvents.forEach(ev => {
+        const cat = ev.category || 'General';
+        if (!categoriesMap[cat]) categoriesMap[cat] = ev.color || 'sky';
+      });
+
+      const categoryNames = Object.keys(categoriesMap);
+      let legendHtml = `
+        <button data-cat-filter="ALL" class="px-2 py-0.5 rounded-full text-[9px] font-semibold transition shrink-0 ${activeCategoryFilter === 'ALL' ? 'bg-white text-black' : 'bg-white/5 text-neutral-400 hover:bg-white/10'}">
+          All (${allEvents.length})
+        </button>
+      `;
+      categoryNames.forEach(cat => {
+        const cKey = categoriesMap[cat];
+        const theme = EVENT_COLORS[cKey] || EVENT_COLORS.sky;
+        const isSelected = activeCategoryFilter === cat;
+        legendHtml += `
+          <button data-cat-filter="${escapeHtml(cat)}" class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium border transition shrink-0 ${isSelected ? theme.badge : 'bg-white/5 border-white/5 text-neutral-400 hover:bg-white/10'}">
+            <span class="w-1.5 h-1.5 rounded-full ${theme.dot}"></span>
+            <span>${escapeHtml(cat)}</span>
+          </button>
+        `;
+      });
+      legendRow.innerHTML = legendHtml;
+
+      const filteredEvents = activeCategoryFilter === 'ALL'
+        ? allEvents
+        : allEvents.filter(ev => (ev.category || 'General') === activeCategoryFilter);
+
+      if (filteredEvents.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full text-center py-4 text-neutral-500">
+            <i data-lucide="calendar-check" class="w-6 h-6 mb-1 text-neutral-600"></i>
+            <p class="text-[11px]">No upcoming events</p>
+            <p class="text-[9px] text-neutral-600 mt-0.5">Tap <strong>Sync</strong> to plug in Google Calendar (.ics) or <strong>+</strong> to add</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const now = new Date();
+      container.innerHTML = filteredEvents.slice(0, 20).map(ev => {
+        const theme = EVENT_COLORS[ev.color] || EVENT_COLORS.sky;
+        const dayLabel = formatRelativeDayLabel(ev.dateObj);
+        const isToday = dayLabel === 'Today';
+        const timeLabel = ev.allDay
+          ? 'ALL DAY'
+          : ev.dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !config.is24Hour });
+
+        // Compute relative "In Xm / Now" badge if today and timed
+        let imminentBadge = '';
+        if (!ev.allDay && isToday) {
+          const diffMins = Math.round((ev.dateObj - now) / 60000);
+          if (diffMins >= -45 && diffMins <= 0) {
+            imminentBadge = `<span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono animate-pulse">NOW</span>`;
+          } else if (diffMins > 0 && diffMins <= 90) {
+            imminentBadge = `<span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono">in ${diffMins}m</span>`;
+          }
+        }
+
+        return `
+          <div class="relative flex items-center justify-between gap-2 p-2 pl-3 rounded-xl border ${theme.cardBg} group transition hover:border-white/20 overflow-hidden">
+            <!-- Color-coded left bar -->
+            <div class="event-color-bar absolute left-0 top-0 bottom-0 w-1 ${theme.bar}"></div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-neutral-100 truncate">${escapeHtml(ev.title)}</span>
+                ${imminentBadge}
+              </div>
+              <div class="flex items-center gap-1.5 mt-0.5 text-[10px] text-neutral-400">
+                <span class="${isToday ? 'text-sky-300 font-semibold' : 'text-neutral-400'}">${dayLabel}</span>
+                <span>•</span>
+                <span class="font-time text-neutral-300">${timeLabel}</span>
+                <span>•</span>
+                <span class="px-1.5 py-0.2 rounded border text-[9px] ${theme.badge}">${escapeHtml(ev.category || 'Event')}</span>
+              </div>
+            </div>
+
+            ${!ev.isExternal ? `
+              <button data-delete-event="${ev.id}" title="Remove event" class="opacity-60 group-hover:opacity-100 text-neutral-500 hover:text-rose-400 p-1 transition shrink-0">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function renderConnectedCalendarsList() {
+      const container = document.getElementById('connected-calendars-list');
+      if (!container) return;
+
+      if (calendarFeeds.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-neutral-500 py-2 text-center">No external Google Calendar feeds connected yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = calendarFeeds.map(feed => {
+        const theme = EVENT_COLORS[feed.color] || EVENT_COLORS.sky;
+        return `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-neutral-950 border border-neutral-800">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-3 h-3 rounded-full ${theme.dot} shrink-0"></span>
+              <div class="min-w-0">
+                <p class="text-xs font-semibold text-neutral-200 truncate">${escapeHtml(feed.name)}</p>
+                <p class="text-[10px] text-neutral-500 truncate">${feed.rawIcsContent ? 'Imported .ics file' : escapeHtml(feed.url)}</p>
+              </div>
+            </div>
+            <button data-remove-feed="${feed.id}" class="p-1.5 text-neutral-500 hover:text-rose-400 transition shrink-0">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // --- Notes & Quick Checklist Logic ---
+    function renderNotes() {
+      const container = document.getElementById('notes-container');
+      const badge = document.getElementById('notes-count-badge');
+      if (!container) return;
+
+      badge.textContent = `${notes.filter(n => !n.completed).length} open`;
+
+      if (notes.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-neutral-500 text-center py-3">No notes. Add one below.</p>`;
+        return;
+      }
+
+      container.innerHTML = notes.map(item => `
+        <div class="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-white/5 border border-white/5 group hover:border-white/10 transition">
+          <div data-toggle-note="${item.id}" class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
+            <div class="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition ${item.completed ? 'bg-sky-500 border-sky-500 text-black' : 'border-neutral-500 bg-transparent'}">
+              ${item.completed ? '<i data-lucide="check" class="w-2.5 h-2.5"></i>' : ''}
+            </div>
+            <span class="truncate text-[11px] ${item.completed ? 'line-through text-neutral-500' : 'text-neutral-200'}">${escapeHtml(item.text)}</span>
+          </div>
+          <button data-delete-note="${item.id}" class="text-neutral-500 hover:text-rose-400 p-0.5 opacity-70 group-hover:opacity-100 transition shrink-0">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    // --- City Search via Open-Meteo Geocoding (Fixed Quote Escaping Bug via Event Delegation) ---
+    async function searchCity(query) {
+      const resultsContainer = document.getElementById('city-search-results');
+      if (!query || query.trim().length < 2) return;
+
+      resultsContainer.innerHTML = `<p class="text-[11px] text-neutral-400 text-center py-3">Searching places...</p>`;
+
+      try {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=6&language=en&format=json`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.results || data.results.length === 0) {
+          lastCitySearchResults = [];
+          resultsContainer.innerHTML = `<p class="text-[11px] text-neutral-500 text-center py-3">No locations found for "${escapeHtml(query)}"</p>`;
+          return;
+        }
+
+        lastCitySearchResults = data.results;
+        resultsContainer.innerHTML = data.results.map((place, index) => {
+          const state = place.admin1 ? `${place.admin1}, ` : '';
+          const country = place.country || '';
+          return `
+            <div data-city-index="${index}" class="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 cursor-pointer flex items-center justify-between transition">
+              <div class="min-w-0">
+                <p class="font-semibold text-neutral-100 text-xs truncate">${escapeHtml(place.name)}</p>
+                <p class="text-[10px] text-neutral-400 truncate">${escapeHtml(state + country)}</p>
+              </div>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-neutral-400 shrink-0"></i>
+            </div>
+          `;
+        }).join('');
+
+        lucide.createIcons();
+      } catch (err) {
+        resultsContainer.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-3">Search failed. Check connection.</p>`;
+      }
+    }
+
+    function selectCityObject(place) {
+      if (!place) return;
+      const country = place.country || '';
+      config.location = {
+        name: country ? `${place.name}, ${country}` : place.name,
+        shortName: place.name,
+        lat: place.latitude,
+        lon: place.longitude
+      };
+      saveConfig();
+      updateLocationUI();
+      document.getElementById('location-modal').classList.add('hidden');
+      fetchWeather();
+    }
+
+    function updateLocationUI() {
+      const locLabel = document.getElementById('current-location-label');
+      const citySubtitle = document.getElementById('weather-city-subtitle');
+      if (locLabel) locLabel.textContent = config.location.name;
+      if (citySubtitle) citySubtitle.textContent = config.location.shortName || config.location.name;
+    }
+
+    // --- Device GPS Geolocation Helper ---
+    function useDeviceGPS() {
+      if (!navigator.geolocation) {
+        const lastUpText = document.getElementById('last-updated-text');
+        if (lastUpText) lastUpText.textContent = 'GPS Unsupported';
+        return;
+      }
+      const resultsContainer = document.getElementById('city-search-results');
+      resultsContainer.innerHTML = `<p class="text-[11px] text-sky-400 text-center py-3">Detecting GPS location...</p>`;
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          config.location = {
+            name: `GPS (${lat.toFixed(2)}, ${lon.toFixed(2)})`,
+            shortName: 'Local GPS',
+            lat: lat,
+            lon: lon
+          };
+          saveConfig();
+          updateLocationUI();
+          document.getElementById('location-modal').classList.add('hidden');
+          fetchWeather();
+        },
+        () => {
+          resultsContainer.innerHTML = `<p class="text-[11px] text-rose-400 text-center py-3">GPS permission denied or requires HTTPS.</p>`;
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    }
+
+    // --- Screen Wake Lock API ---
+    async function requestScreenWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => updateWakeLockUI(false));
+          updateWakeLockUI(true);
+        } catch (err) {
+          updateWakeLockUI(false);
+        }
+      } else {
+        updateWakeLockUI(false, 'N/A');
+      }
+    }
+
+    function updateWakeLockUI(isActive, customText) {
+      const badge = document.getElementById('wakelock-badge');
+      if (!badge) return;
+      if (isActive) {
+        badge.className = 'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 cursor-pointer';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span class="hidden sm:inline">AWAKE</span>`;
+      } else {
+        badge.className = 'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono bg-neutral-800 border border-neutral-700 text-neutral-400 cursor-pointer';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-neutral-500"></span><span class="hidden sm:inline">${customText || 'SLEEP'}</span>`;
+      }
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await requestScreenWakeLock();
+      }
+    });
+
+    // --- OLED Anti-Burn-In Sub-Pixel Jitter ---
+    function initBurnInShift() {
+      setInterval(() => {
+        const wrapper = document.getElementById('burn-in-wrapper');
+        if (!wrapper) return;
+        if (!config.burnInProtection) {
+          wrapper.style.transform = 'translate(0px, 0px)';
+          return;
+        }
+        const shiftX = Math.floor(Math.random() * 5) - 2; // -2px to +2px
+        const shiftY = Math.floor(Math.random() * 5) - 2;
+        wrapper.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+      }, 120000);
+    }
+
+    // --- Bedside Mode & 20:9 OPPO A3 Frame Simulator ---
+    function setBedsideMode(active) {
+      config.bedsideMode = active;
+      document.body.classList.toggle('bedside-active', active);
+      saveConfig();
+      lucide.createIcons();
+    }
+
+    function setFrameSimulator(active) {
+      config.frameSim = active;
+      document.body.classList.toggle('frame-sim-active', active);
+      const btn = document.getElementById('frame-sim-btn');
+      if (btn) {
+        btn.className = active
+          ? 'hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-sky-500/20 border border-sky-500/40 text-[10px] font-mono text-sky-300 transition'
+          : 'hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-neutral-400 transition';
+      }
+      saveConfig();
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+
+    // --- Event Listeners & UI Wiring ---
+    function initEventHandlers() {
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Weather & Calendar auto-refresh every 15 minutes
+      setInterval(() => {
+        fetchWeather();
+        syncAllCalendarFeeds();
+      }, 15 * 60 * 1000);
+
+      document.getElementById('manual-refresh-btn').addEventListener('click', () => {
+        fetchWeather();
+        syncAllCalendarFeeds();
+      });
+
+      document.getElementById('bedside-toggle-btn').addEventListener('click', () => {
+        setBedsideMode(!config.bedsideMode);
+      });
+
+      document.getElementById('frame-sim-btn').addEventListener('click', () => {
+        setFrameSimulator(!config.frameSim);
+      });
+
+      document.getElementById('fullscreen-toggle-btn').addEventListener('click', toggleFullscreen);
+      document.getElementById('wakelock-badge').addEventListener('click', requestScreenWakeLock);
+
+      // Forecast Tabs (Hourly vs 5-Day)
+      document.getElementById('tab-btn-hourly').addEventListener('click', () => setForecastTab('hourly'));
+      document.getElementById('tab-btn-daily').addEventListener('click', () => setForecastTab('daily'));
+
+      // Notes Form & Event Delegation
+      document.getElementById('new-note-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('new-note-input');
+        const val = input.value.trim();
+        if (val) {
+          notes.unshift({ id: Date.now(), text: val, completed: false });
+          saveNotes();
+          input.value = '';
+        }
+      });
+
+      document.getElementById('notes-container').addEventListener('click', (e) => {
+        const toggleEl = e.target.closest('[data-toggle-note]');
+        if (toggleEl) {
+          const id = Number(toggleEl.getAttribute('data-toggle-note'));
+          notes = notes.map(n => n.id === id ? { ...n, completed: !n.completed } : n);
+          saveNotes();
+          return;
+        }
+        const delEl = e.target.closest('[data-delete-note]');
+        if (delEl) {
+          const id = Number(delEl.getAttribute('data-delete-note'));
+          notes = notes.filter(n => n.id !== id);
+          saveNotes();
+        }
+      });
+
+      // Agenda Category Filter & Delete Delegation
+      document.getElementById('calendar-legend-row').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cat-filter]');
+        if (btn) {
+          activeCategoryFilter = btn.getAttribute('data-cat-filter');
+          renderAgenda();
+        }
+      });
+
+      document.getElementById('agenda-events-container').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('[data-delete-event]');
+        if (delBtn) {
+          const id = Number(delBtn.getAttribute('data-delete-event'));
+          localEvents = localEvents.filter(ev => ev.id !== id);
+          saveLocalEvents();
+        }
+      });
+
+      // Calendar Sync Modal
+      const calModal = document.getElementById('calendar-modal');
+      document.getElementById('open-calendar-modal-btn').addEventListener('click', () => {
+        renderConnectedCalendarsList();
+        calModal.classList.remove('hidden');
+      });
+      document.getElementById('close-calendar-modal').addEventListener('click', () => {
+        calModal.classList.add('hidden');
+      });
+
+      // Color Picker inside Calendar Modal
+      document.getElementById('ical-color-picker').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-color]');
+        if (!btn) return;
+        selectedIcalColor = btn.getAttribute('data-color');
+        document.querySelectorAll('#ical-color-picker button').forEach(b => {
+          if (b.getAttribute('data-color') === selectedIcalColor) {
+            b.className = `w-5 h-5 rounded-full bg-${selectedIcalColor}-400 ring-2 ring-white ring-offset-1 ring-offset-neutral-950`;
+          } else {
+            b.className = `w-5 h-5 rounded-full bg-${b.getAttribute('data-color')}-400 opacity-60 hover:opacity-100`;
+          }
+        });
+      });
+
+      // Add .ics Feed Submit
+      document.getElementById('add-ical-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('ical-name-input');
+        const urlInput = document.getElementById('ical-url-input');
+        const name = nameInput.value.trim();
+        const url = urlInput.value.trim();
+        if (!name || !url) return;
+
+        calendarFeeds.push({
+          id: Date.now(),
+          name,
+          url,
+          color: selectedIcalColor,
+          enabled: true
+        });
+        saveCalendarFeeds();
+        nameInput.value = '';
+        urlInput.value = '';
+        renderConnectedCalendarsList();
+        await syncAllCalendarFeeds();
+      });
+
+      // Import local .ics file directly
+      document.getElementById('ical-file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const content = reader.result;
+          const label = document.getElementById('ical-name-input').value.trim() || file.name.replace(/\.ics$/i, '');
+          calendarFeeds.push({
+            id: Date.now(),
+            name: label,
+            url: 'local-file',
+            rawIcsContent: content,
+            color: selectedIcalColor,
+            enabled: true
+          });
+          saveCalendarFeeds();
+          renderConnectedCalendarsList();
+          syncAllCalendarFeeds();
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById('connected-calendars-list').addEventListener('click', (e) => {
+        const rmBtn = e.target.closest('[data-remove-feed]');
+        if (rmBtn) {
+          const id = Number(rmBtn.getAttribute('data-remove-feed'));
+          calendarFeeds = calendarFeeds.filter(f => f.id !== id);
+          saveCalendarFeeds();
+          syncAllCalendarFeeds();
+        }
+      });
+
+      document.getElementById('sync-calendars-now-btn').addEventListener('click', syncAllCalendarFeeds);
+
+      // Quick Add Local Event Modal
+      const addEventModal = document.getElementById('add-event-modal');
+      document.getElementById('open-add-event-btn').addEventListener('click', () => {
+        document.getElementById('event-date-input').value = formatLocalDateYMD(new Date());
+        addEventModal.classList.remove('hidden');
+      });
+      document.getElementById('close-add-event-modal').addEventListener('click', () => addEventModal.classList.add('hidden'));
+      document.getElementById('cancel-add-event-btn').addEventListener('click', () => addEventModal.classList.add('hidden'));
+
+      document.getElementById('custom-event-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('event-title-input').value.trim();
+        const dateVal = document.getElementById('event-date-input').value;
+        const timeVal = document.getElementById('event-time-input').value;
+        const category = document.getElementById('event-category-input').value.trim() || 'Personal';
+        const color = document.getElementById('event-color-select').value;
+
+        if (!title || !dateVal) return;
+
+        localEvents.push({
+          id: Date.now(),
+          title,
+          startIso: timeVal ? `${dateVal}T${timeVal}:00` : dateVal,
+          allDay: !timeVal,
+          category,
+          color
+        });
+        saveLocalEvents();
+        document.getElementById('event-title-input').value = '';
+        document.getElementById('event-time-input').value = '';
+        addEventModal.classList.add('hidden');
+      });
+
+      // Location Modal & Safe City Selection
+      const locModal = document.getElementById('location-modal');
+      document.getElementById('location-picker-btn').addEventListener('click', () => {
+        locModal.classList.remove('hidden');
+        document.getElementById('city-search-input').focus();
+      });
+      document.getElementById('close-location-modal').addEventListener('click', () => locModal.classList.add('hidden'));
+      document.getElementById('use-gps-btn').addEventListener('click', useDeviceGPS);
+
+      let searchTimeout = null;
+      const searchInput = document.getElementById('city-search-input');
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchCity(e.target.value), 450);
+      });
+      document.getElementById('city-search-submit').addEventListener('click', () => searchCity(searchInput.value));
+
+      document.getElementById('city-search-results').addEventListener('click', (e) => {
+        const row = e.target.closest('[data-city-index]');
+        if (row) {
+          const idx = Number(row.getAttribute('data-city-index'));
+          selectCityObject(lastCitySearchResults[idx]);
+        }
+      });
+
+      // Settings Modal
+      const settingsModal = document.getElementById('settings-modal');
+      document.getElementById('settings-toggle-btn').addEventListener('click', () => {
+        document.getElementById('setting-24h').checked = config.is24Hour;
+        document.getElementById('setting-seconds').checked = config.showSeconds;
+        document.getElementById('setting-unit').value = config.tempUnit;
+        document.getElementById('setting-burnin').checked = config.burnInProtection;
+        settingsModal.classList.remove('hidden');
+      });
+      document.getElementById('close-settings-modal').addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+      document.getElementById('save-settings-btn').addEventListener('click', () => {
+        config.is24Hour = document.getElementById('setting-24h').checked;
+        config.showSeconds = document.getElementById('setting-seconds').checked;
+        config.tempUnit = document.getElementById('setting-unit').value;
+        config.burnInProtection = document.getElementById('setting-burnin').checked;
+        saveConfig();
+        updateClock();
+        fetchWeather();
+        renderAgenda();
+        settingsModal.classList.add('hidden');
+      });
+    }
+
+    // --- App Bootstrap ---
+    window.onload = function() {
+      loadSavedState();
+      updateLocationUI();
+      initEventHandlers();
+      setForecastTab(config.activeForecastTab || 'hourly');
+      renderNotes();
+      renderAgenda();
+      fetchWeather();
+      syncAllCalendarFeeds();
+      requestScreenWakeLock();
+      initBurnInShift();
+
+      if (config.bedsideMode) setBedsideMode(true);
+      if (config.frameSim) setFrameSimulator(true);
+
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
