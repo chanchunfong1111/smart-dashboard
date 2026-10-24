@@ -586,24 +586,30 @@
         const storedFeeds = localStorage.getItem('smart_display_cal_feeds');
         if (storedFeeds) calendarFeeds = JSON.parse(storedFeeds);
 
+        // Pre-configured primary Google Calendar feed
+        const PRIMARY_GCAL_URL = 'https://calendar.google.com/calendar/ical/chanchunfong1111%40gmail.com/private-36d37c7a5561aa57a1e4b81d2b2d24d1/basic.ics';
+        const hasPrimaryFeed = calendarFeeds.some(f => f.url && f.url.includes('chanchunfong1111'));
+        if (!hasPrimaryFeed) {
+          calendarFeeds.unshift({
+            id: 'gcal-primary',
+            name: 'Google Calendar',
+            url: PRIMARY_GCAL_URL,
+            color: 'sky',
+            enabled: true
+          });
+          saveCalendarFeeds();
+        }
+
         const storedCachedIcs = localStorage.getItem('smart_display_cached_ics_events');
         if (storedCachedIcs) fetchedIcsEvents = JSON.parse(storedCachedIcs);
 
         const storedLocalEvents = localStorage.getItem('smart_display_local_events');
         if (storedLocalEvents) {
           localEvents = JSON.parse(storedLocalEvents);
+          // Remove old mock demo items so user's real calendar events take center stage
+          localEvents = localEvents.filter(ev => ![101, 102, 103, 104].includes(ev.id));
         } else {
-          const now = new Date();
-          const d0 = formatLocalDateYMD(now);
-          const d1 = formatLocalDateYMD(new Date(now.getTime() + 86400000));
-          const d2 = formatLocalDateYMD(new Date(now.getTime() + 2 * 86400000));
-          localEvents = [
-            { id: 101, title: 'Engineering Sprint Sync', startIso: `${d0}T10:00:00`, allDay: false, category: 'Work', color: 'sky' },
-            { id: 102, title: 'Evening Gym & Cardio', startIso: `${d0}T18:30:00`, allDay: false, category: 'Fitness', color: 'orange' },
-            { id: 103, title: 'Project Milestone Review', startIso: `${d1}T14:00:00`, allDay: false, category: 'Urgent', color: 'rose' },
-            { id: 104, title: 'Family Dinner & Catchup', startIso: `${d2}`, allDay: true, category: 'Family', color: 'violet' }
-          ];
-          saveLocalEvents();
+          localEvents = [];
         }
       } catch (e) {
         console.error('Error loading stored state:', e);
@@ -833,10 +839,11 @@
     // =========================================================================
     async function fetchIcsTextWithFallback(rawUrl) {
       const proxies = [
-        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `./calendar.ics?t=${Date.now()}`,
+        (u) => u,
         (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-        (u) => u
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
       ];
       for (const buildUrl of proxies) {
         try {
@@ -847,6 +854,15 @@
           }
         } catch (err) { /* try next proxy */ }
       }
+      // Final attempt: local repository calendar.ics
+      try {
+        const localRes = await fetch(`./calendar.ics?t=${Date.now()}`);
+        if (localRes.ok) {
+          const text = await localRes.text();
+          if (text && text.includes('BEGIN:VCALENDAR')) return text;
+        }
+      } catch (e) {}
+
       throw new Error('Could not retrieve iCal feed via proxies.');
     }
 
@@ -925,9 +941,18 @@
         const freqMatch = raw.rrule.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i);
         if (freqMatch) {
           const freq = freqMatch[1].toUpperCase();
+
+          // Stop recurring series if UNTIL expiration date is specified and in the past
+          let rruleUntil = null;
+          const untilMatch = raw.rrule.match(/UNTIL=(\d{8}(?:T\d{6}Z?)?)/i);
+          if (untilMatch) {
+            const uInfo = parseIcsDate(untilMatch[1]);
+            if (uInfo && uInfo.date) rruleUntil = uInfo.date;
+          }
+
           const cursor = new Date(baseDate.getTime());
           let safety = 0;
-          while (cursor <= windowEnd && safety++ < 500) {
+          while (cursor <= windowEnd && (!rruleUntil || cursor <= rruleUntil) && safety++ < 500) {
             if (cursor >= windowStart) results.push(make(new Date(cursor)));
             if (freq === 'DAILY') cursor.setDate(cursor.getDate() + 1);
             else if (freq === 'WEEKLY') cursor.setDate(cursor.getDate() + 7);
@@ -956,9 +981,20 @@
           console.warn(`Failed to sync feed "${feed.name}":`, err);
         }
       }
-      fetchedIcsEvents = combined;
-      try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
-      badge.textContent = `${calendarFeeds.length} Cal`;
+      if (combined.length > 0) {
+        fetchedIcsEvents = combined;
+        try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
+      } else if (fetchedIcsEvents.length === 0) {
+        try {
+          const fallbackRes = await fetch(`./calendar.ics?t=${Date.now()}`);
+          if (fallbackRes.ok) {
+            const fbText = await fallbackRes.text();
+            fetchedIcsEvents = parseIcsContent(fbText, 'Google Calendar', 'sky');
+            try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
+          }
+        } catch (e) {}
+      }
+      badge.textContent = `${calendarFeeds.length || 1} Cal`;
       renderAgenda();
       renderConnectedCalendarsList();
     }
