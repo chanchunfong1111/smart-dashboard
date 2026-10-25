@@ -12,3 +12,9 @@ desktop.ini
 # Local temporary files
 *.tmp
 *.log
+
+# Private Calendar Files
+calendar.ics
+family.ics
+personal*.ics
+private*.ics

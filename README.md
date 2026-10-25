@@ -17,13 +17,12 @@ A modern, high-contrast, always-on smart display kiosk dashboard designed to fit
 - **20:9 OPPO A3 Simulator**: Built-in preview toggle in Settings for testing at 800×360 on desktop screens.
 
 ### 2. Multi-Calendar Color-Coded Agenda
-- **4 Pre-Configured Feeds**:
-  - 🔵 **Personal**: Work, office, and personal tasks.
-  - 🟣 **Family**: Family events, checkups, and shared appointments.
-  - 🔴 **Holidays (Japan) 🇯🇵**: Official Japanese public holidays and national celebrations.
-  - 🟡 **Holidays (Malaysia) 🇲🇾**: Official Malaysian national and public holidays.
-- **Automated GitHub Action**: Runs every 4 hours via `.github/workflows/update-calendar.yml` to refresh all 4 `.ics` feeds directly from Google Calendar with zero CORS friction.
-- **Local Fallback Feeds**: Includes `calendar.ics`, `family.ics`, `holidays_jp.ics`, and `holidays_my.ics` committed in the repository so schedules load instantly and work offline.
+- **Public Feeds Included by Default**:
+  - 🔴 **Holidays (Japan) 🇯🇵**: Official Japanese national holidays.
+  - 🟡 **Holidays (Malaysia) 🇲🇾**: Official Malaysian national holidays.
+- **Private Calendars (100% Client-Side Privacy)**:
+  - Connect your Google Calendars (Personal, Family, Work) securely via the **Calendars** modal or a 1-tap browser setup link / QR code.
+  - Private calendar URLs and `.ics` files are stored purely in your browser's private local storage (`localStorage`) and are **never uploaded or exposed to GitHub**.
 - **Date Grouping & Live Badges**: Events grouped under Today / Tomorrow / Day headings, with real-time `NOW` and `in Xm` countdown indicators.
 
 ### 3. Open-Meteo Weather Center
