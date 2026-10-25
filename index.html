@@ -513,7 +513,8 @@
     let wakeLock = null;
     let notes = [];
     let calendarFeeds = [];
-    let calendarEncryptionKey = '';
+    const DEFAULT_CALENDAR_KEY = '85c8bb701fbd2439c51eb0c44a19ede8c7d50576733e6f488eaa6354b82b09f9';
+    let calendarEncryptionKey = DEFAULT_CALENDAR_KEY;
     let encryptedCalendarStatus = 'unconfigured';
     let localEvents = [];
     let fetchedIcsEvents = [];
@@ -648,7 +649,7 @@
         }
 
         const storedKey = localStorage.getItem('smart_display_cal_key');
-        if (storedKey && /^[0-9a-f]{64}$/i.test(storedKey)) calendarEncryptionKey = storedKey.toLowerCase();
+        calendarEncryptionKey = (storedKey && /^[0-9a-f]{64}$/i.test(storedKey)) ? storedKey.toLowerCase() : DEFAULT_CALENDAR_KEY;
 
         const storedFeeds = localStorage.getItem('smart_display_cal_feeds');
         if (storedFeeds) {
