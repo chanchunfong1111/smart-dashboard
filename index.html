@@ -586,17 +586,58 @@
         const storedFeeds = localStorage.getItem('smart_display_cal_feeds');
         if (storedFeeds) calendarFeeds = JSON.parse(storedFeeds);
 
-        // Pre-configured primary Google Calendar feed
-        const PRIMARY_GCAL_URL = 'https://calendar.google.com/calendar/ical/chanchunfong1111%40gmail.com/private-36d37c7a5561aa57a1e4b81d2b2d24d1/basic.ics';
-        const hasPrimaryFeed = calendarFeeds.some(f => f.url && f.url.includes('chanchunfong1111'));
-        if (!hasPrimaryFeed) {
-          calendarFeeds.unshift({
-            id: 'gcal-primary',
-            name: 'Google Calendar',
-            url: PRIMARY_GCAL_URL,
+        // Pre-configured default calendars (Personal, Family, Japan Holidays, Malaysia Holidays)
+        const DEFAULT_CALENDARS = [
+          {
+            id: 'gcal-personal',
+            name: 'Personal',
+            url: 'https://calendar.google.com/calendar/ical/chanchunfong1111%40gmail.com/private-36d37c7a5561aa57a1e4b81d2b2d24d1/basic.ics',
+            fallbackFile: './calendar.ics',
             color: 'sky',
             enabled: true
-          });
+          },
+          {
+            id: 'gcal-family',
+            name: 'Family',
+            url: 'https://calendar.google.com/calendar/ical/family10143415730387905850%40group.calendar.google.com/private-ee61f19cb7666b01bc3eef94c711dda7/basic.ics',
+            fallbackFile: './family.ics',
+            color: 'violet',
+            enabled: true
+          },
+          {
+            id: 'gcal-holiday-jp',
+            name: 'Holiday (JP) 🇯🇵',
+            url: 'https://calendar.google.com/calendar/ical/en.japanese%23holiday%40group.v.calendar.google.com/public/basic.ics',
+            fallbackFile: './holidays_jp.ics',
+            color: 'rose',
+            enabled: true
+          },
+          {
+            id: 'gcal-holiday-my',
+            name: 'Holiday (MY) 🇲🇾',
+            url: 'https://calendar.google.com/calendar/ical/en.malaysia%23holiday%40group.v.calendar.google.com/public/basic.ics',
+            fallbackFile: './holidays_my.ics',
+            color: 'amber',
+            enabled: true
+          }
+        ];
+
+        let feedsUpdated = false;
+        for (const dc of DEFAULT_CALENDARS) {
+          const matchIndex = calendarFeeds.findIndex(f => f.url && f.url.toLowerCase() === dc.url.toLowerCase());
+          if (matchIndex === -1) {
+            calendarFeeds.push(dc);
+            feedsUpdated = true;
+          } else {
+            // Update fallbackFile & name in case already stored with old properties
+            calendarFeeds[matchIndex].fallbackFile = dc.fallbackFile;
+            if (calendarFeeds[matchIndex].name === 'Google Calendar') {
+              calendarFeeds[matchIndex].name = 'Personal';
+              feedsUpdated = true;
+            }
+          }
+        }
+        if (feedsUpdated) {
           saveCalendarFeeds();
         }
 
@@ -837,33 +878,32 @@
     // =========================================================================
     // GOOGLE CALENDAR (.ICS) PARSER
     // =========================================================================
-    async function fetchIcsTextWithFallback(rawUrl) {
-      const proxies = [
-        (u) => `./calendar.ics?t=${Date.now()}`,
-        (u) => u,
-        (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-      ];
-      for (const buildUrl of proxies) {
+    async function fetchIcsTextWithFallback(rawUrl, fallbackFile = '') {
+      const candidates = [];
+      if (fallbackFile) candidates.push(fallbackFile + '?t=' + Date.now());
+      if (rawUrl.includes('family10143415730387905850')) candidates.push('./family.ics?t=' + Date.now());
+      else if (rawUrl.includes('japanese%23holiday') || rawUrl.includes('ja.japanese')) candidates.push('./holidays_jp.ics?t=' + Date.now());
+      else if (rawUrl.includes('malaysia%23holiday')) candidates.push('./holidays_my.ics?t=' + Date.now());
+      else if (rawUrl.includes('chanchunfong1111')) candidates.push('./calendar.ics?t=' + Date.now());
+
+      candidates.push(
+        rawUrl,
+        `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawUrl)}`
+      );
+
+      for (const buildUrl of candidates) {
         try {
-          const res = await fetch(buildUrl(rawUrl), { cache: 'no-store' });
+          const res = await fetch(buildUrl, { cache: 'no-store' });
           if (res.ok) {
             const text = await res.text();
             if (text && text.includes('BEGIN:VCALENDAR')) return text;
           }
         } catch (err) { /* try next proxy */ }
       }
-      // Final attempt: local repository calendar.ics
-      try {
-        const localRes = await fetch(`./calendar.ics?t=${Date.now()}`);
-        if (localRes.ok) {
-          const text = await localRes.text();
-          if (text && text.includes('BEGIN:VCALENDAR')) return text;
-        }
-      } catch (e) {}
 
-      throw new Error('Could not retrieve iCal feed via proxies.');
+      throw new Error('Could not retrieve iCal feed via proxies or local fallback.');
     }
 
     function parseIcsContent(icsText, calendarName = 'Google Calendar', defaultColor = 'sky') {
@@ -925,8 +965,11 @@
     function expandIcsEvent(raw, calendarName, defaultColor, windowStart, windowEnd) {
       const startInfo = parseIcsDate(raw.dtstart, raw.dtstartRawProp || '');
       if (!startInfo) return [];
-      const category = raw.categories || calendarName;
-      const color = inferColorFromText(`${raw.summary} ${category}`, defaultColor);
+      const category = calendarName || raw.categories || 'Event';
+      let color = defaultColor || 'sky';
+      if (defaultColor === 'sky') {
+        color = inferColorFromText(`${raw.summary} ${category}`, 'sky');
+      }
       const results = [];
       const baseDate = startInfo.date;
       const isAllDay = startInfo.allDay;
@@ -975,7 +1018,7 @@
       for (const feed of calendarFeeds) {
         if (feed.enabled === false) continue;
         try {
-          const text = feed.rawIcsContent || await fetchIcsTextWithFallback(feed.url);
+          const text = feed.rawIcsContent || await fetchIcsTextWithFallback(feed.url, feed.fallbackFile);
           combined.push(...parseIcsContent(text, feed.name, feed.color));
         } catch (err) {
           console.warn(`Failed to sync feed "${feed.name}":`, err);
@@ -1022,7 +1065,7 @@
     function renderAgenda() {
       const container = document.getElementById('agenda-events-container');
       if (!container) return;
-      const events = getAllUpcomingEvents().slice(0, 15);
+      const events = getAllUpcomingEvents().slice(0, 50);
 
       if (events.length === 0) {
         container.innerHTML = `

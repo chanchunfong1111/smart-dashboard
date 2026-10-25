@@ -16,11 +16,15 @@ A modern, high-contrast, always-on smart display kiosk dashboard designed to fit
 - **Zero Page Scroll**: Everything fits comfortably on one screen locked to `100dvh`.
 - **20:9 OPPO A3 Simulator**: Built-in preview toggle in Settings for testing at 800×360 on desktop screens.
 
-### 2. Pre-Configured Google Calendar Agenda
-- **Direct Integration**: Pre-configured with your Google Calendar iCal (`.ics`) feed with automatic sync and local repository fallback.
-- **Automated GitHub Action**: Runs every 4 hours in `.github/workflows/update-calendar.yml` to refresh calendar events directly from Google Calendar with zero CORS friction.
-- **Smart Color-Coding**: Events automatically receive color badges and left accent bars based on title keywords (e.g. Work/Office in Sky, Urgent/Medical in Rose, Fitness in Orange, Family in Violet).
-- **Date Grouping & Live Badges**: Events grouped under Today / Tomorrow / Day headings, plus real-time `NOW` and `in Xm` countdown indicators.
+### 2. Multi-Calendar Color-Coded Agenda
+- **4 Pre-Configured Feeds**:
+  - 🔵 **Personal**: Work, office, and personal tasks.
+  - 🟣 **Family**: Family events, checkups, and shared appointments.
+  - 🔴 **Holidays (Japan) 🇯🇵**: Official Japanese public holidays and national celebrations.
+  - 🟡 **Holidays (Malaysia) 🇲🇾**: Official Malaysian national and public holidays.
+- **Automated GitHub Action**: Runs every 4 hours via `.github/workflows/update-calendar.yml` to refresh all 4 `.ics` feeds directly from Google Calendar with zero CORS friction.
+- **Local Fallback Feeds**: Includes `calendar.ics`, `family.ics`, `holidays_jp.ics`, and `holidays_my.ics` committed in the repository so schedules load instantly and work offline.
+- **Date Grouping & Live Badges**: Events grouped under Today / Tomorrow / Day headings, with real-time `NOW` and `in Xm` countdown indicators.
 
 ### 3. Open-Meteo Weather Center
 - **Zero API Key Required**: Live weather fetched from Open-Meteo.

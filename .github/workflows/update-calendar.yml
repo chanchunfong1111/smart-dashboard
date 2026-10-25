@@ -1,4 +1,4 @@
-name: Sync Google Calendar
+name: Sync Google Calendars
 
 on:
   schedule:
@@ -15,18 +15,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download latest iCal feed
+      - name: Download latest iCal feeds
         run: |
           curl -s -f "https://calendar.google.com/calendar/ical/chanchunfong1111%40gmail.com/private-36d37c7a5561aa57a1e4b81d2b2d24d1/basic.ics" -o calendar.ics
+          curl -s -f "https://calendar.google.com/calendar/ical/family10143415730387905850%40group.calendar.google.com/private-ee61f19cb7666b01bc3eef94c711dda7/basic.ics" -o family.ics
+          curl -s -f "https://calendar.google.com/calendar/ical/en.japanese%23holiday%40group.v.calendar.google.com/public/basic.ics" -o holidays_jp.ics
+          curl -s -f "https://calendar.google.com/calendar/ical/en.malaysia%23holiday%40group.v.calendar.google.com/public/basic.ics" -o holidays_my.ics
 
       - name: Commit and push if changed
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add calendar.ics
+          git add calendar.ics family.ics holidays_jp.ics holidays_my.ics
           if git diff --staged --quiet; then
-            echo "No changes to calendar"
+            echo "No changes to calendars"
           else
-            git commit -m "Auto-sync: update calendar.ics from Google Calendar"
+            git commit -m "Auto-sync: update Google Calendars and Holidays"
             git push
           fi
