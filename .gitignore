@@ -18,3 +18,5 @@ calendar.ics
 family.ics
 personal*.ics
 private*.ics
+.master_key
+scripts/setup_secrets.py

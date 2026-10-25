@@ -324,12 +324,10 @@
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
         <div class="p-3 rounded-xl bg-[#0c1f2b] border border-sky-800 text-sm text-zinc-200 leading-relaxed">
-          <p class="font-bold text-sky-300 mb-1">How to connect Google Calendar</p>
-          <ol class="list-decimal list-inside space-y-0.5">
-            <li>Google Calendar (desktop) → Settings → click your calendar.</li>
-            <li><strong>Integrate calendar</strong> → copy <strong>Secret address in iCal format</strong>.</li>
-            <li>Paste below, pick a label &amp; color, tap <strong>Add</strong>.</li>
-          </ol>
+          <p class="font-bold text-sky-300 mb-1 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Zero-Exposure End-to-End Encryption
+          </p>
+          <p class="text-xs text-zinc-300">Your Google Calendars (Personal &amp; Family) are fetched privately via GitHub Actions and stored in military-grade AES-256 encrypted form. No private URLs or calendar data are ever exposed in public Git.</p>
         </div>
         <form id="add-ical-form" class="space-y-2 bg-black p-3 rounded-xl border border-[#23232c]">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -515,6 +513,8 @@
     let wakeLock = null;
     let notes = [];
     let calendarFeeds = [];
+    let calendarEncryptionKey = '';
+    let encryptedCalendarStatus = 'unconfigured';
     let localEvents = [];
     let fetchedIcsEvents = [];
     let lastCitySearchResults = [];
@@ -565,45 +565,62 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
+        // --- AES-256-GCM Calendar Decryptor ---
+    async function decryptCalendarBundle(encPayload, keyHex) {
+      if (!encPayload || !encPayload.iv || !encPayload.data || !keyHex) return null;
+      try {
+        const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const cryptoKey = await window.crypto.subtle.importKey(
+          'raw',
+          keyBytes,
+          { name: 'AES-GCM' },
+          false,
+          ['decrypt']
+        );
+        const iv = Uint8Array.from(atob(encPayload.iv), c => c.charCodeAt(0));
+        const data = Uint8Array.from(atob(encPayload.data), c => c.charCodeAt(0));
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: iv },
+          cryptoKey,
+          data
+        );
+        const text = new TextDecoder().decode(decrypted);
+        return JSON.parse(text);
+      } catch (err) {
+        console.error('Decryption failed:', err);
+        return null;
+      }
+    }
+
     // --- LocalStorage Persistence ---
-    // --- 1-Tap Secure Hash Importer (#setup=... or #import=...) ---
+    // --- 1-Tap Secure Hash / Key Importer (#key=... or #setup=...) ---
     function handleHashSetup() {
       const hash = window.location.hash;
       if (!hash) return;
-      let setupData = null;
 
-      if (hash.startsWith('#setup=') || hash.startsWith('#import=')) {
+      let keyFound = null;
+
+      if (hash.startsWith('#key=')) {
+        const rawKey = hash.replace(/^#key=/, '').trim();
+        if (/^[0-9a-f]{64}$/i.test(rawKey)) {
+          keyFound = rawKey.toLowerCase();
+        }
+      } else if (hash.startsWith('#setup=') || hash.startsWith('#import=')) {
         const raw = hash.replace(/^#(setup|import)=/, '');
         try {
           const jsonStr = decodeURIComponent(escape(atob(raw)));
-          setupData = JSON.parse(jsonStr);
-        } catch (e) {
-          try {
-            setupData = JSON.parse(decodeURIComponent(raw));
-          } catch (err) {}
-        }
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && parsed.key && /^[0-9a-f]{64}$/i.test(parsed.key)) {
+            keyFound = parsed.key.toLowerCase();
+          }
+        } catch (e) {}
       }
 
-      if (setupData && Array.isArray(setupData)) {
-        setupData.forEach(item => {
-          if (item.url && item.name) {
-            const existingIdx = calendarFeeds.findIndex(f => f.url && f.url.toLowerCase() === item.url.toLowerCase());
-            if (existingIdx !== -1) {
-              calendarFeeds[existingIdx] = { ...calendarFeeds[existingIdx], ...item, enabled: true };
-            } else {
-              calendarFeeds.unshift({
-                id: Date.now() + Math.random(),
-                name: item.name,
-                url: item.url,
-                color: item.color || 'sky',
-                enabled: true
-              });
-            }
-          }
-        });
+      if (keyFound) {
+        calendarEncryptionKey = keyFound;
+        try { localStorage.setItem('smart_display_cal_key', keyFound); } catch (e) {}
 
-        saveCalendarFeeds();
-        // Immediately remove hash from address bar and history to keep URL clean and private
+        // Immediately scrub secret key from browser URL and history
         try {
           window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
         } catch (e) {}
@@ -630,8 +647,16 @@
           saveNotes();
         }
 
+        const storedKey = localStorage.getItem('smart_display_cal_key');
+        if (storedKey && /^[0-9a-f]{64}$/i.test(storedKey)) calendarEncryptionKey = storedKey.toLowerCase();
+
         const storedFeeds = localStorage.getItem('smart_display_cal_feeds');
-        if (storedFeeds) calendarFeeds = JSON.parse(storedFeeds);
+        if (storedFeeds) {
+          calendarFeeds = JSON.parse(storedFeeds);
+          // Scrub legacy private URLs from localStorage so nothing private remains stored in plain text
+          calendarFeeds = calendarFeeds.filter(f => !f.url || (!f.url.includes('calendar.google.com/calendar/ical/') && !f.url.includes('private-')));
+          saveCalendarFeeds();
+        }
 
         // Pre-configured public holiday calendars (safe for public repository)
         const PUBLIC_CALENDARS = [
@@ -1037,33 +1062,68 @@
 
     async function syncAllCalendarFeeds() {
       const badge = document.getElementById('agenda-source-badge');
-      if (calendarFeeds.length === 0) { badge.textContent = 'Calendars'; renderAgenda(); return; }
-
-      badge.textContent = 'Syncing…';
+      if (badge) badge.textContent = 'Syncing…';
       const combined = [];
-      for (const feed of calendarFeeds) {
-        if (feed.enabled === false) continue;
+      let activeCount = 0;
+
+      // 1. Decrypt and load AES-256 encrypted Google Calendar bundle
+      if (calendarEncryptionKey) {
         try {
-          const text = feed.rawIcsContent || await fetchIcsTextWithFallback(feed.url, feed.fallbackFile);
-          combined.push(...parseIcsContent(text, feed.name, feed.color));
+          const res = await fetch(`./calendar_data.enc?t=${Date.now()}`, { cache: 'no-store' });
+          if (res.ok) {
+            const encPayload = await res.json();
+            const bundle = await decryptCalendarBundle(encPayload, calendarEncryptionKey);
+            if (bundle && Array.isArray(bundle.feeds)) {
+              encryptedCalendarStatus = 'active';
+              for (const feed of bundle.feeds) {
+                if (feed.ics) {
+                  combined.push(...parseIcsContent(feed.ics, feed.name, feed.color || 'sky'));
+                  activeCount++;
+                }
+              }
+            } else {
+              encryptedCalendarStatus = 'error';
+            }
+          }
         } catch (err) {
-          console.warn(`Failed to sync feed "${feed.name}":`, err);
+          console.warn('Failed to load encrypted calendar bundle:', err);
+          encryptedCalendarStatus = 'error';
         }
+      } else {
+        encryptedCalendarStatus = 'key_missing';
       }
-      if (combined.length > 0) {
-        fetchedIcsEvents = combined;
-        try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
-      } else if (fetchedIcsEvents.length === 0) {
+
+      // 2. Load Japan & Malaysia Public Holidays
+      const PUBLIC_HOLIDAYS = [
+        { name: 'Holiday (JP) 🇯🇵', file: './holidays_jp.ics', color: 'rose' },
+        { name: 'Holiday (MY) 🇲🇾', file: './holidays_my.ics', color: 'amber' }
+      ];
+      for (const hol of PUBLIC_HOLIDAYS) {
         try {
-          const fallbackRes = await fetch(`./calendar.ics?t=${Date.now()}`);
-          if (fallbackRes.ok) {
-            const fbText = await fallbackRes.text();
-            fetchedIcsEvents = parseIcsContent(fbText, 'Google Calendar', 'sky');
-            try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
+          const res = await fetch(`${hol.file}?t=${Date.now()}`, { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            combined.push(...parseIcsContent(text, hol.name, hol.color));
+            activeCount++;
           }
         } catch (e) {}
       }
-      badge.textContent = `${calendarFeeds.length || 1} Cal`;
+
+      // 3. Load any local user-imported .ics files
+      for (const feed of calendarFeeds) {
+        if (feed.enabled === false) continue;
+        if (feed.rawIcsContent) {
+          combined.push(...parseIcsContent(feed.rawIcsContent, feed.name, feed.color));
+          activeCount++;
+        }
+      }
+
+      if (combined.length > 0) {
+        fetchedIcsEvents = combined;
+        try { localStorage.setItem('smart_display_cached_ics_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
+      }
+
+      if (badge) badge.textContent = `${activeCount || 1} Cal`;
       renderAgenda();
       renderConnectedCalendarsList();
     }
@@ -1161,13 +1221,87 @@
     function renderConnectedCalendarsList() {
       const container = document.getElementById('connected-calendars-list');
       if (!container) return;
-      if (calendarFeeds.length === 0) {
-        container.innerHTML = `<p class="text-sm text-zinc-400 py-2 text-center">No calendars connected yet.</p>`;
-        return;
+
+      const items = [];
+
+      // Encrypted Google Calendars Status Card
+      if (calendarEncryptionKey && encryptedCalendarStatus !== 'error') {
+        items.push(`
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#091a10] border border-emerald-900/60">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-3.5 h-3.5 rounded-full bg-sky-400 shrink-0"></span>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                  <span>Personal</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">AES-256 🔒</span>
+                </p>
+                <p class="text-xs text-zinc-400 truncate">Google Calendar · Zero-exposure sync</p>
+              </div>
+            </div>
+            <span class="text-xs text-emerald-400 font-semibold px-2 py-0.5 rounded-lg bg-emerald-950/60">Active</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#091a10] border border-emerald-900/60">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-3.5 h-3.5 rounded-full bg-violet-400 shrink-0"></span>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                  <span>Family</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">AES-256 🔒</span>
+                </p>
+                <p class="text-xs text-zinc-400 truncate">Google Calendar · Zero-exposure sync</p>
+              </div>
+            </div>
+            <span class="text-xs text-emerald-400 font-semibold px-2 py-0.5 rounded-lg bg-emerald-950/60">Active</span>
+          </div>
+        `);
+      } else {
+        items.push(`
+          <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-800/60 text-xs text-amber-200">
+            <p class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+              <i data-lucide="key" class="w-4 h-4"></i> Private Calendars Locked
+            </p>
+            <p class="mb-2">Scan the setup QR code or paste your 64-character sync key below to decrypt your Personal & Family schedules.</p>
+            <div class="flex gap-2">
+              <input id="sync-key-manual-input" type="password" placeholder="Paste 64-char sync key…" class="flex-1 bg-black border border-amber-800 rounded-lg px-2.5 py-1 text-xs text-white">
+              <button id="save-sync-key-btn" type="button" class="px-3 py-1 rounded-lg bg-amber-400 text-black font-bold text-xs">Unlock</button>
+            </div>
+          </div>
+        `);
       }
-      container.innerHTML = calendarFeeds.map(feed => {
+
+      // Japan Public Holidays
+      items.push(`
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-black border border-[#23232c]">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-3.5 h-3.5 rounded-full bg-rose-400 shrink-0"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-white truncate">Holiday (Japan) 🇯🇵</p>
+              <p class="text-xs text-zinc-400 truncate">Public national holidays</p>
+            </div>
+          </div>
+          <span class="text-xs text-zinc-400 px-2 py-0.5 rounded-lg bg-zinc-900">Public</span>
+        </div>
+      `);
+
+      // Malaysia Public Holidays
+      items.push(`
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-black border border-[#23232c]">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shrink-0"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-white truncate">Holiday (Malaysia) 🇲🇾</p>
+              <p class="text-xs text-zinc-400 truncate">Public national holidays</p>
+            </div>
+          </div>
+          <span class="text-xs text-zinc-400 px-2 py-0.5 rounded-lg bg-zinc-900">Public</span>
+        </div>
+      `);
+
+      // Any local custom feeds
+      for (const feed of calendarFeeds) {
+        if (feed.url && (feed.url.includes('google.com') || feed.url.includes('holidays_'))) continue;
         const theme = EVENT_COLORS[feed.color] || EVENT_COLORS.sky;
-        return `
+        items.push(`
           <div class="flex items-center justify-between p-2.5 rounded-xl bg-black border border-[#23232c]">
             <div class="flex items-center gap-2 min-w-0">
               <span class="w-3.5 h-3.5 rounded-full ${theme.dot} shrink-0"></span>
@@ -1177,9 +1311,28 @@
               </div>
             </div>
             <button data-remove-feed="${feed.id}" class="p-2 text-zinc-400 active:text-rose-400 shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-          </div>`;
-      }).join('');
+          </div>
+        `);
+      }
+
+      container.innerHTML = items.join('');
       lucide.createIcons();
+
+      // Wire up manual unlock button if rendered
+      const unlockBtn = document.getElementById('save-sync-key-btn');
+      if (unlockBtn) {
+        unlockBtn.addEventListener('click', () => {
+          const inp = document.getElementById('sync-key-manual-input');
+          const val = (inp?.value || '').trim().toLowerCase();
+          if (/^[0-9a-f]{64}$/.test(val)) {
+            calendarEncryptionKey = val;
+            try { localStorage.setItem('smart_display_cal_key', val); } catch (e) {}
+            syncAllCalendarFeeds();
+          } else {
+            alert('Please paste a valid 64-character hexadecimal sync key.');
+          }
+        });
+      }
     }
 
     // --- Notes ---
