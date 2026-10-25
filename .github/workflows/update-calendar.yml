@@ -2,7 +2,7 @@ name: Secure Calendar Sync & Encryption
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
