@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Smart Display">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <title>Smart Display Dashboard — iPad Edition</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #0c0c10;
+      --card-sub: #13131a;
+      --line: #22222b;
+      --accent: #38bdf8;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: #ffffff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.04em;
+    }
+
+    ::-webkit-scrollbar { display: none; }
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+    }
+
+    .card-sub {
+      background: var(--card-sub);
+      border: 1px solid #1f1f28;
+    }
+
+    /* Bedside eye-care mode (Amber-Red monochrome) */
+    body.bedside-active {
+      background-color: #020000 !important;
+    }
+    body.bedside-active .card,
+    body.bedside-active .card-sub {
+      background-color: #0d0200 !important;
+      border-color: #3b0d00 !important;
+    }
+    body.bedside-active * {
+      color: #ea580c !important;
+      border-color: #7c2d12 !important;
+    }
+    body.bedside-active svg {
+      stroke: #ea580c !important;
+    }
+    body.bedside-active .bg-sky-400,
+    body.bedside-active .bg-emerald-400,
+    body.bedside-active .bg-violet-400,
+    body.bedside-active .bg-rose-400,
+    body.bedside-active .bg-amber-400 {
+      background-color: #ea580c !important;
+      color: #000000 !important;
+    }
+
+    /* Subtle OLED burn-in shift container */
+    #dashboard-wrapper {
+      transition: transform 1.5s ease-in-out;
+    }
+
+    .btn-action {
+      background: #14141c;
+      border: 1px solid #282834;
+      transition: all 0.15s ease;
+    }
+    .btn-action:active {
+      transform: scale(0.96);
+      background: #1f1f2b;
+    }
+  </style>
+</head>
+<body class="w-full h-full p-3 sm:p-5 flex flex-col justify-between box-border">
+
+  <!-- Main Root Shifting Container (Burn-in prevention) -->
+  <div id="dashboard-wrapper" class="w-full h-full flex flex-col flex-1 max-w-[1700px] mx-auto gap-3.5">
+
+    <!-- ================================================================== -->
+    <!-- HEADER BAR: Location, Sync Status, Tablet Kiosk Controls          -->
+    <!-- ================================================================== -->
+    <header class="flex items-center justify-between pb-1 shrink-0 border-b border-[#1c1c24] text-sm">
+      <div class="flex items-center gap-2.5">
+        <button id="location-modal-btn" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full btn-action text-white font-medium">
+          <i data-lucide="map-pin" class="w-4 h-4 text-sky-400"></i>
+          <span id="current-location-text" class="truncate max-w-[200px] sm:max-w-[280px]">Kasugai, Japan</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
+        </button>
+
+        <button id="manual-refresh-btn" title="Refresh all data" class="p-2 rounded-full btn-action text-zinc-300 active:rotate-180 transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <span id="last-updated-text" class="hidden sm:inline text-xs text-zinc-500">Updated just now</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Screen Wake Lock Badge -->
+        <button id="wakelock-btn" title="Toggle Screen Always-On" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>AWAKE</span>
+        </button>
+
+        <!-- iPad Kiosk Tip Modal Trigger -->
+        <button id="ipad-tip-btn" title="iPad Kiosk Mode Guide" class="p-2 rounded-xl btn-action text-sky-400">
+          <i data-lucide="tablet" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Bedside Nightstand Mode Toggle -->
+        <button id="bedside-toggle-btn" title="Bedside Nightstand Mode (Amber/Red)" class="p-2 rounded-xl btn-action text-amber-400">
+          <i data-lucide="moon" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Fullscreen Toggle -->
+        <button id="fullscreen-btn" title="Toggle Fullscreen" class="p-2 rounded-xl btn-action text-zinc-300">
+          <i data-lucide="maximize" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Settings Modal Trigger -->
+        <button id="settings-modal-btn" title="Dashboard Settings" class="p-2 rounded-xl btn-action text-zinc-300">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ================================================================== -->
+    <!-- MAIN TABLET DUAL-COLUMN GRID (Spacious 4:3 All-in-One Layout)     -->
+    <!-- ================================================================== -->
+    <main class="flex-1 grid grid-cols-12 gap-3.5 min-h-0 items-stretch">
+
+      <!-- LEFT COLUMN: Clock, Full Weather & 5-Day Forecast, Notes (5 cols) -->
+      <section class="col-span-12 lg:col-span-5 flex flex-col gap-3.5 min-h-0">
+        
+        <!-- 1. Hero Digital Clock & Date Card -->
+        <div class="card p-5 sm:p-6 flex flex-col justify-center items-center text-center relative overflow-hidden shrink-0">
+          <div class="flex items-baseline justify-center font-mono-time font-black text-white tracking-tighter">
+            <span id="clock-hours-mins" class="text-7xl sm:text-8xl">09:41</span>
+            <span id="clock-seconds" class="text-3xl sm:text-4xl text-zinc-500 ml-2 font-light">45</span>
+            <span id="clock-ampm" class="text-xl sm:text-2xl text-sky-400 ml-2 font-bold self-start mt-2">AM</span>
+          </div>
+
+          <div id="clock-date-display" class="mt-2 text-lg sm:text-xl font-semibold text-zinc-200">
+            Sunday, October 25
+          </div>
+
+          <div class="flex items-center gap-2 mt-3 text-xs text-zinc-400 flex-wrap justify-center">
+            <span class="px-2.5 py-1 rounded-full card-sub" id="badge-week-number">Week 43</span>
+            <span class="px-2.5 py-1 rounded-full card-sub" id="badge-day-of-year">Day 298 of 365</span>
+            <span class="px-2.5 py-1 rounded-full card-sub flex items-center gap-1.5" id="badge-sun-times">
+              <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span id="sun-summary-text">Sunrise 06:05</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- 2. Weather & 5-Day Forecast Card -->
+        <div class="card p-4 sm:p-5 flex flex-col gap-3 shrink-0">
+          <!-- Current Weather Row -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3.5">
+              <div id="weather-icon-container" class="w-14 h-14 rounded-2xl bg-[#14141c] border border-[#242430] flex items-center justify-center">
+                <i data-lucide="sun" class="w-8 h-8 text-amber-400"></i>
+              </div>
+              <div>
+                <div class="flex items-baseline gap-1.5">
+                  <span id="weather-temp-now" class="text-5xl font-black text-white">21°</span>
+                  <span id="weather-condition-label" class="text-base font-semibold text-zinc-200">Clear Sky</span>
+                </div>
+                <div class="text-xs text-zinc-400 flex items-center gap-2 mt-0.5">
+                  <span id="weather-high-low">H: 24° · L: 13°</span>
+                  <span>·</span>
+                  <span id="weather-feels-like">Feels like 21°</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Weather Details Pill -->
+            <div class="text-right text-xs text-zinc-400 space-y-0.5 hidden sm:block">
+              <div>Humidity: <strong id="weather-humidity" class="text-white">52%</strong></div>
+              <div>Wind: <strong id="weather-wind" class="text-white">8 km/h</strong></div>
+              <div>UV Index: <strong id="weather-uv" class="text-white">Moderate</strong></div>
+            </div>
+          </div>
+
+          <!-- 5-Day Forecast Strip -->
+          <div id="weather-forecast-strip" class="grid grid-cols-5 gap-1.5 pt-3 border-t border-[#1a1a24] text-center">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- 3. Family Notes / Quick Checklist Card -->
+        <div class="card p-4 sm:p-5 flex-1 flex flex-col min-h-[160px] overflow-hidden">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#1c1c24] shrink-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="check-square" class="w-4 h-4 text-sky-400"></i>
+              <h2 class="text-xs sm:text-sm font-bold tracking-wider uppercase text-zinc-300">Tablet Notes</h2>
+            </div>
+            <span id="notes-badge-count" class="text-xs text-zinc-500 font-mono">2 active</span>
+          </div>
+
+          <!-- Notes Scrollable List -->
+          <div id="notes-list-container" class="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Add Note Form -->
+          <form id="new-note-form" class="mt-2.5 pt-2 border-t border-[#1c1c24] flex gap-2 shrink-0">
+            <input id="new-note-input" type="text" placeholder="Add a note or reminder…" class="flex-1 bg-black border border-[#242430] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-sky-400 text-black font-bold text-sm btn-action !bg-sky-400">Add</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Full-Height Tablet Agenda & Schedule (7 cols) -->
+      <section class="col-span-12 lg:col-span-7 card p-5 sm:p-6 flex flex-col min-h-0">
+        
+        <!-- Agenda Card Header -->
+        <div class="flex items-center justify-between pb-3 mb-2 border-b border-[#1c1c24] shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-[#14141c] border border-[#242430] flex items-center justify-center text-sky-400">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-white leading-tight">Agenda &amp; Schedule</h2>
+              <p class="text-xs text-zinc-400 flex items-center gap-1.5">
+                <span id="agenda-source-badge" class="font-semibold text-sky-300">Public Holidays</span>
+                <span>·</span>
+                <span id="agenda-count-badge">0 upcoming</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button id="open-add-event-btn" class="px-3 py-1.5 rounded-xl btn-action text-xs sm:text-sm font-semibold flex items-center gap-1 text-white">
+              <i data-lucide="plus" class="w-4 h-4 text-sky-400"></i>
+              <span>Add Event</span>
+            </button>
+            <button id="open-calendars-modal-btn" class="px-3.5 py-1.5 rounded-xl bg-sky-400 text-black font-bold text-xs sm:text-sm btn-action !bg-sky-400 flex items-center gap-1.5">
+              <i data-lucide="calendar-sync" class="w-4 h-4"></i>
+              <span>Calendars</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pill Tabs -->
+        <div class="flex items-center gap-1.5 mb-2.5 shrink-0 overflow-x-auto pb-1" id="agenda-filter-chips">
+          <button data-filter="all" class="px-3 py-1 rounded-full text-xs font-semibold bg-white text-black">All Events</button>
+          <button data-filter="events" class="px-3 py-1 rounded-full text-xs font-semibold bg-[#14141c] border border-[#242430] text-zinc-300">Personal &amp; Family</button>
+          <button data-filter="holidays" class="px-3 py-1 rounded-full text-xs font-semibold bg-[#14141c] border border-[#242430] text-zinc-300">Holidays</button>
+        </div>
+
+        <!-- Scrollable Agenda Events Container -->
+        <div id="agenda-events-container" class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL: CALENDAR CONNECTION & MANAGEMENT (Tailored for iPad)        -->
+  <!-- ================================================================== -->
+  <div id="calendar-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-5 sm:p-6 w-full max-w-2xl max-h-[92vh] flex flex-col text-sm">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#22222b] shrink-0">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="calendar-sync" class="w-5 h-5 text-sky-400"></i>Connect Your Calendars</h3>
+        <button id="close-calendar-modal-btn" class="p-1.5 rounded-lg btn-action text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+        
+        <!-- Helpful setup guide accordion/cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <!-- Google Calendar Instructions -->
+          <div class="p-3.5 rounded-xl card-sub border border-[#282838]">
+            <p class="font-bold text-sky-300 flex items-center gap-1.5 mb-1">
+              <i data-lucide="globe" class="w-4 h-4"></i> Google Calendar
+            </p>
+            <p class="text-xs text-zinc-300 leading-relaxed">
+              Google Calendar web → Settings → select calendar → <strong>Integrate calendar</strong> → copy <strong>Secret address in iCal format (.ics)</strong>.
+            </p>
+          </div>
+
+          <!-- Apple iCloud Calendar Instructions -->
+          <div class="p-3.5 rounded-xl card-sub border border-[#282838]">
+            <p class="font-bold text-sky-300 flex items-center gap-1.5 mb-1">
+              <i data-lucide="apple" class="w-4 h-4"></i> Apple iCloud Calendar
+            </p>
+            <p class="text-xs text-zinc-300 leading-relaxed">
+              In Apple Calendar app on iPad or Mac → tap info icon next to calendar → turn on <strong>Public Calendar</strong> → copy share link (<code class="text-sky-300">webcal://</code>).
+            </p>
+          </div>
+        </div>
+
+        <!-- Add URL Calendar Feed Form -->
+        <form id="add-feed-form" class="p-4 rounded-xl card-sub border border-[#282838] space-y-3">
+          <div class="font-bold text-white text-xs uppercase tracking-wider">Add Online Calendar (Google / Apple / Outlook)</div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <input id="feed-name-input" type="text" placeholder="Calendar label (e.g. My Schedule)" required class="bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500">
+            <input id="feed-url-input" type="url" placeholder="Paste .ics or webcal:// link" required class="sm:col-span-2 bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500">
+          </div>
+
+          <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
+            <div id="feed-color-picker" class="flex items-center gap-2">
+              <button type="button" data-color="sky" class="w-7 h-7 rounded-full bg-sky-400 ring-2 ring-white"></button>
+              <button type="button" data-color="emerald" class="w-7 h-7 rounded-full bg-emerald-400 opacity-50"></button>
+              <button type="button" data-color="violet" class="w-7 h-7 rounded-full bg-violet-400 opacity-50"></button>
+              <button type="button" data-color="amber" class="w-7 h-7 rounded-full bg-amber-400 opacity-50"></button>
+              <button type="button" data-color="rose" class="w-7 h-7 rounded-full bg-rose-400 opacity-50"></button>
+              <button type="button" data-color="orange" class="w-7 h-7 rounded-full bg-orange-400 opacity-50"></button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <label class="px-3 py-1.5 rounded-xl btn-action text-xs text-zinc-300 cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                <span>Import .ics File</span>
+                <input type="file" id="feed-file-input" accept=".ics,text/calendar" class="hidden">
+              </label>
+              <button type="submit" class="px-4 py-1.5 rounded-xl bg-sky-400 text-black font-bold text-xs">+ Connect Feed</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Public National Holidays Selector -->
+        <div class="p-3.5 rounded-xl card-sub border border-[#282838] space-y-2">
+          <div class="font-bold text-white text-xs uppercase tracking-wider flex items-center justify-between">
+            <span>National Public Holidays</span>
+            <span class="text-zinc-500 font-normal">Offline built-in</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="holidays-toggle-grid">
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-black border border-[#22222c] cursor-pointer">
+              <input type="checkbox" id="holiday-jp-checkbox" class="w-4 h-4 accent-sky-400">
+              <span class="text-xs font-semibold">Japan 🇯🇵</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-black border border-[#22222c] cursor-pointer">
+              <input type="checkbox" id="holiday-my-checkbox" class="w-4 h-4 accent-sky-400">
+              <span class="text-xs font-semibold">Malaysia 🇲🇾</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-black border border-[#22222c] cursor-pointer">
+              <input type="checkbox" id="holiday-sg-checkbox" class="w-4 h-4 accent-sky-400">
+              <span class="text-xs font-semibold">Singapore 🇸🇬</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-black border border-[#22222c] cursor-pointer">
+              <input type="checkbox" id="holiday-us-checkbox" class="w-4 h-4 accent-sky-400">
+              <span class="text-xs font-semibold">United States 🇺🇸</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-lg bg-black border border-[#22222c] cursor-pointer">
+              <input type="checkbox" id="holiday-uk-checkbox" class="w-4 h-4 accent-sky-400">
+              <span class="text-xs font-semibold">United Kingdom 🇬🇧</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Connected Calendars List -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-xs uppercase tracking-wider text-zinc-400">Active Calendars</span>
+            <button id="sync-all-calendars-now-btn" class="text-xs text-sky-400 flex items-center gap-1 font-semibold"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>Sync All Now</button>
+          </div>
+          <div id="connected-calendars-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL: ADD LOCAL CUSTOM EVENT                                       -->
+  <!-- ================================================================== -->
+  <div id="add-event-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-5 sm:p-6 w-full max-w-lg text-sm">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#22222b]">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="calendar-plus" class="w-5 h-5 text-sky-400"></i>Add Event</h3>
+        <button id="close-add-event-modal-btn" class="p-1.5 rounded-lg btn-action text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="custom-event-form" class="space-y-3">
+        <input id="event-title-input" type="text" placeholder="Event title" required class="w-full bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+        
+        <div class="grid grid-cols-2 gap-2">
+          <input id="event-date-input" type="date" required class="bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+          <input id="event-time-input" type="time" placeholder="All-day if empty" class="bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <input id="event-category-input" type="text" value="Personal" placeholder="Category" class="bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+          <select id="event-color-select" class="bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white focus:outline-none">
+            <option value="sky">🔵 Work / Important</option>
+            <option value="emerald">🟢 Personal</option>
+            <option value="violet">🟣 Family</option>
+            <option value="amber">🟡 Reminder</option>
+            <option value="rose">🔴 Urgent</option>
+            <option value="orange">🟠 Fitness / Hobby</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="cancel-add-event-btn" class="px-4 py-2 rounded-xl btn-action text-zinc-300">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-400 text-black font-bold">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL: IPAD KIOSK SETUP GUIDE                                      -->
+  <!-- ================================================================== -->
+  <div id="ipad-guide-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-5 sm:p-6 w-full max-w-lg text-sm">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#22222b]">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="tablet" class="w-5 h-5 text-sky-400"></i>iPad 24/7 Kiosk Guide</h3>
+        <button id="close-ipad-guide-btn" class="p-1.5 rounded-lg btn-action text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="space-y-3 text-zinc-300 text-sm leading-relaxed">
+        <div class="p-3.5 rounded-xl card-sub border border-[#282838] flex items-start gap-3">
+          <span class="w-6 h-6 rounded-full bg-sky-400 text-black font-bold flex items-center justify-center shrink-0 text-xs">1</span>
+          <div>
+            <p class="font-bold text-white mb-0.5">Add to Home Screen (Full Screen)</p>
+            <p class="text-xs text-zinc-400">In Safari on iPad, tap the <strong>Share</strong> icon (square with arrow) → tap <strong>Add to Home Screen</strong>. It will open as a standalone app without Safari bars!</p>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl card-sub border border-[#282838] flex items-start gap-3">
+          <span class="w-6 h-6 rounded-full bg-sky-400 text-black font-bold flex items-center justify-center shrink-0 text-xs">2</span>
+          <div>
+            <p class="font-bold text-white mb-0.5">Turn on Screen Wake Lock</p>
+            <p class="text-xs text-zinc-400">Keep the green <strong class="text-emerald-400">AWAKE</strong> badge active at the top so the iPad screen never turns off while docked.</p>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl card-sub border border-[#282838] flex items-start gap-3">
+          <span class="w-6 h-6 rounded-full bg-sky-400 text-black font-bold flex items-center justify-center shrink-0 text-xs">3</span>
+          <div>
+            <p class="font-bold text-white mb-0.5">Guided Access (Dedicated Kiosk Lock)</p>
+            <p class="text-xs text-zinc-400">Optional: Go to iPad <strong>Settings → Accessibility → Guided Access</strong>. Triple-click the top or Home button to lock the iPad onto this smart dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3">
+        <button id="ok-ipad-guide-btn" class="px-5 py-2 rounded-xl bg-sky-400 text-black font-bold">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL: LOCATION SELECTOR                                           -->
+  <!-- ================================================================== -->
+  <div id="location-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-5 sm:p-6 w-full max-w-lg text-sm flex flex-col">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#22222b]">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="map-pin" class="w-5 h-5 text-sky-400"></i>Change Location</h3>
+        <button id="close-location-modal-btn" class="p-1.5 rounded-lg btn-action text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="flex gap-2 mb-3">
+        <input id="city-search-input" type="text" placeholder="Search city name…" class="flex-1 bg-black border border-[#2a2a38] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500">
+        <button id="city-search-submit-btn" class="px-4 py-2 rounded-xl btn-action text-white font-semibold">Search</button>
+        <button id="use-gps-btn" class="px-3.5 py-2 rounded-xl btn-action text-sky-400 font-semibold flex items-center gap-1.5"><i data-lucide="crosshair" class="w-4 h-4"></i><span>GPS</span></button>
+      </div>
+
+      <div id="city-search-results" class="max-h-60 overflow-y-auto space-y-1.5">
+        <p class="text-xs text-zinc-500 text-center py-4">Type a city name to search weather</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL: SETTINGS                                                    -->
+  <!-- ================================================================== -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-5 sm:p-6 w-full max-w-xl text-sm flex flex-col">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#22222b]">
+        <h3 class="text-lg font-bold flex items-center gap-2"><i data-lucide="sliders" class="w-5 h-5 text-sky-400"></i>Dashboard Settings</h3>
+        <button id="close-settings-modal-btn" class="p-1.5 rounded-lg btn-action text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="space-y-2.5">
+        <label class="flex items-center justify-between p-3 rounded-xl card-sub">
+          <div>
+            <p class="font-semibold text-white">24-Hour Clock</p>
+            <p class="text-xs text-zinc-400">Display time in military / 24h format</p>
+          </div>
+          <input type="checkbox" id="setting-24h-clock" class="w-5 h-5 accent-sky-400">
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-xl card-sub">
+          <div>
+            <p class="font-semibold text-white">Temperature Unit</p>
+            <p class="text-xs text-zinc-400">Choose Celsius or Fahrenheit</p>
+          </div>
+          <select id="setting-temp-unit" class="bg-black border border-[#2a2a38] rounded-lg px-2.5 py-1 text-white">
+            <option value="celsius">Celsius (°C)</option>
+            <option value="fahrenheit">Fahrenheit (°F)</option>
+          </select>
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-xl card-sub">
+          <div>
+            <p class="font-semibold text-white">Show Seconds</p>
+            <p class="text-xs text-zinc-400">Display running seconds on clock</p>
+          </div>
+          <input type="checkbox" id="setting-show-seconds" class="w-5 h-5 accent-sky-400" checked>
+        </label>
+
+        <label class="flex items-center justify-between p-3 rounded-xl card-sub">
+          <div>
+            <p class="font-semibold text-white">OLED Burn-in Protection</p>
+            <p class="text-xs text-zinc-400">Subtly shifts display pixels every 2 minutes</p>
+          </div>
+          <input type="checkbox" id="setting-burn-in" class="w-5 h-5 accent-sky-400" checked>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- JAVASCRIPT APPLICATION LOGIC (Clean Slate for iPad)                -->
+  <!-- ================================================================== -->
+  <script>
+    // --- Constants & Color Schemes ---
+    const EVENT_COLORS = {
+      sky:     { bar: 'bg-sky-400',     dot: 'bg-sky-400',     text: 'text-sky-300' },
+      emerald: { bar: 'bg-emerald-400', dot: 'bg-emerald-400', text: 'text-emerald-300' },
+      violet:  { bar: 'bg-violet-400',  dot: 'bg-violet-400',  text: 'text-violet-300' },
+      amber:   { bar: 'bg-amber-400',   dot: 'bg-amber-400',   text: 'text-amber-300' },
+      rose:    { bar: 'bg-rose-400',    dot: 'bg-rose-400',    text: 'text-rose-300' },
+      orange:  { bar: 'bg-orange-400',  dot: 'bg-orange-400',  text: 'text-orange-300' }
+    };
+
+    const WMO_MAP = {
+      0: { label: 'Clear', icon: 'sun', nightIcon: 'moon' },
+      1: { label: 'Mainly Clear', icon: 'cloud-sun', nightIcon: 'cloud-moon' },
+      2: { label: 'Partly Cloudy', icon: 'cloud-sun', nightIcon: 'cloud-moon' },
+      3: { label: 'Overcast', icon: 'cloud', nightIcon: 'cloud' },
+      45: { label: 'Foggy', icon: 'cloud-fog', nightIcon: 'cloud-fog' },
+      48: { label: 'Rime Fog', icon: 'cloud-fog', nightIcon: 'cloud-fog' },
+      51: { label: 'Light Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      53: { label: 'Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      55: { label: 'Dense Drizzle', icon: 'cloud-drizzle', nightIcon: 'cloud-drizzle' },
+      61: { label: 'Light Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      63: { label: 'Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      65: { label: 'Heavy Rain', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      71: { label: 'Light Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      73: { label: 'Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      75: { label: 'Heavy Snow', icon: 'snowflake', nightIcon: 'snowflake' },
+      80: { label: 'Showers', icon: 'cloud-sun-rain', nightIcon: 'cloud-rain' },
+      82: { label: 'Heavy Showers', icon: 'cloud-rain', nightIcon: 'cloud-rain' },
+      95: { label: 'Thunderstorm', icon: 'cloud-lightning', nightIcon: 'cloud-lightning' }
+    };
+
+    const DEFAULT_CONFIG = {
+      is24Hour: false,
+      showSeconds: true,
+      tempUnit: 'celsius',
+      burnInProtection: true,
+      bedsideMode: false,
+      location: { name: 'Kasugai, Japan', shortName: 'Kasugai', lat: 35.25, lon: 136.97 }
+    };
+
+    let config = { ...DEFAULT_CONFIG };
+    let wakeLock = null;
+    let notes = [];
+    let calendarFeeds = [];
+    let localEvents = [];
+    let fetchedIcsEvents = [];
+    let selectedFeedColor = 'sky';
+    let agendaActiveFilter = 'all';
+
+    // Built-in national holiday definitions
+    const HOLIDAY_PRESETS = {
+      jp: { id: 'hol-jp', name: 'Holiday (JP) 🇯🇵', file: './holidays_jp.ics', color: 'rose' },
+      my: { id: 'hol-my', name: 'Holiday (MY) 🇲🇾', file: './holidays_my.ics', color: 'amber' },
+      sg: { id: 'hol-sg', name: 'Holiday (SG) 🇸🇬', file: './holidays_sg.ics', color: 'emerald' },
+      us: { id: 'hol-us', name: 'Holiday (US) 🇺🇸', file: './holidays_us.ics', color: 'sky' },
+      uk: { id: 'hol-uk', name: 'Holiday (UK) 🇬🇧', file: './holidays_uk.ics', color: 'violet' }
+    };
+
+    let enabledHolidays = { jp: true, my: true, sg: false, us: false, uk: false };
+
+    // --- State Persistence ---
+    function loadSavedState() {
+      try {
+        const storedConfig = localStorage.getItem('ipad_dashboard_config');
+        if (storedConfig) config = { ...config, ...JSON.parse(storedConfig) };
+
+        const storedNotes = localStorage.getItem('ipad_dashboard_notes');
+        if (storedNotes) {
+          notes = JSON.parse(storedNotes);
+        } else {
+          notes = [
+            { id: 1, text: 'Welcome to Smart Display for iPad ✨', completed: false },
+            { id: 2, text: 'Tap Calendars to link your schedule 📅', completed: false }
+          ];
+          saveNotes();
+        }
+
+        const storedFeeds = localStorage.getItem('ipad_dashboard_feeds');
+        if (storedFeeds) calendarFeeds = JSON.parse(storedFeeds);
+
+        const storedHols = localStorage.getItem('ipad_dashboard_holidays');
+        if (storedHols) enabledHolidays = { ...enabledHolidays, ...JSON.parse(storedHols) };
+
+        const storedLocal = localStorage.getItem('ipad_dashboard_local_events');
+        if (storedLocal) localEvents = JSON.parse(storedLocal);
+
+        const cachedEvents = localStorage.getItem('ipad_dashboard_cached_events');
+        if (cachedEvents) fetchedIcsEvents = JSON.parse(cachedEvents);
+      } catch (e) {
+        console.warn('Error loading stored iPad dashboard state:', e);
+      }
+    }
+
+    function saveConfig() { try { localStorage.setItem('ipad_dashboard_config', JSON.stringify(config)); } catch (e) {} }
+    function saveNotes() { try { localStorage.setItem('ipad_dashboard_notes', JSON.stringify(notes)); } catch (e) {} renderNotes(); }
+    function saveCalendarFeeds() { try { localStorage.setItem('ipad_dashboard_feeds', JSON.stringify(calendarFeeds)); } catch (e) {} }
+    function saveHolidaySettings() { try { localStorage.setItem('ipad_dashboard_holidays', JSON.stringify(enabledHolidays)); } catch (e) {} }
+    function saveLocalEvents() { try { localStorage.setItem('ipad_dashboard_local_events', JSON.stringify(localEvents)); } catch (e) {} renderAgenda(); }
+
+    // --- Clock Engine ---
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      let ampm = '';
+      if (!config.is24Hour) {
+        ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+      }
+      const hh = config.is24Hour ? String(hours).padStart(2, '0') : String(hours);
+
+      document.getElementById('clock-hours-mins').textContent = `${hh}:${minutes}`;
+      const secEl = document.getElementById('clock-seconds');
+      secEl.textContent = seconds;
+      secEl.style.display = config.showSeconds ? '' : 'none';
+
+      const ampmEl = document.getElementById('clock-ampm');
+      ampmEl.textContent = ampm;
+      ampmEl.style.display = config.is24Hour ? 'none' : '';
+
+      document.getElementById('clock-date-display').textContent =
+        now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+      document.getElementById('badge-week-number').textContent = `Week ${getWeekNumber(now)}`;
+      document.getElementById('badge-day-of-year').textContent = `Day ${getDayOfYear(now)} of ${isLeapYear(now.getFullYear()) ? 366 : 365}`;
+    }
+
+    function getWeekNumber(d) {
+      const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+      return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+    }
+    function getDayOfYear(d) {
+      const start = new Date(d.getFullYear(), 0, 0);
+      const diff = d - start;
+      return Math.floor(diff / 86400000);
+    }
+    function isLeapYear(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+
+    // --- Weather Engine (Open-Meteo) ---
+    async function fetchWeather() {
+      const { lat, lon } = config.location;
+      const tempParam = config.tempUnit === 'fahrenheit' ? '&temperature_unit=fahrenheit' : '';
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto${tempParam}`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Weather fetch failed');
+        const data = await res.json();
+        renderWeather(data);
+        document.getElementById('last-updated-text').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (err) {
+        console.warn('Weather update error:', err);
+      }
+    }
+
+    function renderWeather(data) {
+      const cur = data.current;
+      const daily = data.daily;
+      const meta = WMO_MAP[cur.weather_code] || { label: 'Clear', icon: 'sun', nightIcon: 'moon' };
+      const iconName = cur.is_day ? meta.icon : meta.nightIcon;
+
+      document.getElementById('weather-temp-now').textContent = Math.round(cur.temperature_2m) + '°';
+      document.getElementById('weather-condition-label').textContent = meta.label;
+      document.getElementById('weather-high-low').textContent = `H: ${Math.round(daily.temperature_2m_max[0])}° · L: ${Math.round(daily.temperature_2m_min[0])}°`;
+      document.getElementById('weather-feels-like').textContent = `Feels ${Math.round(cur.apparent_temperature)}°`;
+      document.getElementById('weather-humidity').textContent = `${cur.relative_humidity_2m}%`;
+      document.getElementById('weather-wind').textContent = `${Math.round(cur.wind_speed_10m)} km/h`;
+      
+      const uv = daily.uv_index_max ? daily.uv_index_max[0] : 0;
+      let uvLabel = 'Low';
+      if (uv >= 3) uvLabel = 'Moderate';
+      if (uv >= 6) uvLabel = 'High';
+      if (uv >= 8) uvLabel = 'Very High';
+      document.getElementById('weather-uv').textContent = `${Math.round(uv)} (${uvLabel})`;
+
+      document.getElementById('weather-icon-container').innerHTML = `<i data-lucide="${iconName}" class="w-8 h-8 text-amber-400"></i>`;
+
+      if (daily.sunrise && daily.sunrise[0]) {
+        const sr = new Date(daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('sun-summary-text').textContent = `Sunrise ${sr}`;
+      }
+
+      // Render 5-Day Forecast Strip
+      const strip = document.getElementById('weather-forecast-strip');
+      let html = '';
+      const days = daily.time.slice(0, 5);
+      for (let i = 0; i < days.length; i++) {
+        const dObj = new Date(days[i] + 'T00:00:00');
+        const dayLabel = i === 0 ? 'Today' : dObj.toLocaleDateString(undefined, { weekday: 'short' });
+        const dCode = daily.weather_code[i];
+        const dMeta = WMO_MAP[dCode] || { icon: 'sun' };
+        const hi = Math.round(daily.temperature_2m_max[i]);
+        const lo = Math.round(daily.temperature_2m_min[i]);
+
+        html += `
+          <div class="p-2 rounded-xl card-sub flex flex-col items-center justify-between">
+            <span class="text-xs font-semibold ${i === 0 ? 'text-sky-300' : 'text-zinc-400'}">${dayLabel}</span>
+            <i data-lucide="${dMeta.icon}" class="w-5 h-5 text-zinc-300 my-1"></i>
+            <div class="text-[11px] font-mono">
+              <span class="text-white font-bold">${hi}°</span>
+              <span class="text-zinc-500">/${lo}°</span>
+            </div>
+          </div>`;
+      }
+      strip.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // --- City Search ---
+    async function searchCity(query) {
+      const container = document.getElementById('city-search-results');
+      if (!query || query.trim().length < 2) return;
+      container.innerHTML = `<p class="text-xs text-sky-400 text-center py-4">Searching places…</p>`;
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=6&language=en&format=json`);
+        const data = await res.json();
+        if (!data.results || !data.results.length) {
+          container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">No places found for "${escapeHtml(query)}"</p>`;
+          return;
+        }
+        container.innerHTML = data.results.map((p, idx) => `
+          <div data-city-idx="${idx}" class="p-2.5 rounded-xl card-sub hover:bg-[#1a1a24] active:scale-[0.98] cursor-pointer flex items-center justify-between">
+            <div>
+              <p class="font-bold text-white text-sm">${escapeHtml(p.name)}</p>
+              <p class="text-xs text-zinc-400">${escapeHtml((p.admin1 ? p.admin1 + ', ' : '') + (p.country || ''))}</p>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-400"></i>
+          </div>
+        `).join('');
+        lucide.createIcons();
+
+        container.querySelectorAll('[data-city-idx]').forEach(el => {
+          el.addEventListener('click', () => {
+            const place = data.results[Number(el.getAttribute('data-city-idx'))];
+            config.location = {
+              name: place.country ? `${place.name}, ${place.country}` : place.name,
+              shortName: place.name,
+              lat: place.latitude,
+              lon: place.longitude
+            };
+            saveConfig();
+            document.getElementById('current-location-text').textContent = config.location.name;
+            document.getElementById('location-modal').classList.add('hidden');
+            fetchWeather();
+          });
+        });
+      } catch (err) {
+        container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Search failed. Check network.</p>`;
+      }
+    }
+
+    // --- Notes Management ---
+    function renderNotes() {
+      const container = document.getElementById('notes-list-container');
+      const countBadge = document.getElementById('notes-badge-count');
+      const openNotes = notes.filter(n => !n.completed).length;
+      countBadge.textContent = `${openNotes} active`;
+
+      if (notes.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">No notes. Add one below!</p>`;
+        return;
+      }
+
+      container.innerHTML = notes.map(n => `
+        <div class="p-2 rounded-xl card-sub flex items-center justify-between gap-2.5">
+          <div data-toggle-note="${n.id}" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+            <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${n.completed ? 'bg-sky-400 border-sky-400 text-black' : 'border-zinc-500'}">
+              ${n.completed ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
+            </div>
+            <span class="text-xs sm:text-sm truncate ${n.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}">${escapeHtml(n.text)}</span>
+          </div>
+          <button data-delete-note="${n.id}" class="p-1 text-zinc-500 hover:text-rose-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+
+      container.querySelectorAll('[data-toggle-note]').forEach(el => {
+        el.addEventListener('click', () => {
+          const id = Number(el.getAttribute('data-toggle-note'));
+          notes = notes.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+          saveNotes();
+        });
+      });
+
+      container.querySelectorAll('[data-delete-note]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = Number(btn.getAttribute('data-delete-note'));
+          notes = notes.filter(item => item.id !== id);
+          saveNotes();
+        });
+      });
+    }
+
+    // =========================================================================
+    // CALENDAR SYNC & .ICS PARSING ENGINE
+    // =========================================================================
+    function cleanWebcalUrl(url) {
+      if (!url) return '';
+      return url.trim().replace(/^webcal:\/\//i, 'https://');
+    }
+
+    async function fetchCalendarWithProxyFallback(url) {
+      const target = cleanWebcalUrl(url);
+      const candidates = [
+        target,
+        `https://corsproxy.io/?${encodeURIComponent(target)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`
+      ];
+
+      for (const reqUrl of candidates) {
+        try {
+          const res = await fetch(reqUrl, { cache: 'no-store' });
+          if (res.ok) {
+            const txt = await res.text();
+            if (txt && txt.includes('BEGIN:VCALENDAR')) return txt;
+          }
+        } catch (e) {}
+      }
+      throw new Error('Could not fetch calendar feed via proxies.');
+    }
+
+    function parseIcsContent(icsText, calendarName = 'Calendar', defaultColor = 'sky') {
+      if (!icsText || !icsText.includes('BEGIN:VEVENT')) return [];
+      const lines = icsText.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
+      const events = [];
+      let current = null;
+      const now = new Date();
+      const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const windowEnd = new Date(windowStart.getTime() + 60 * 86400000);
+
+      for (const line of lines) {
+        if (line === 'BEGIN:VEVENT') { current = {}; continue; }
+        if (line === 'END:VEVENT') {
+          if (current && current.dtstart && current.summary) {
+            events.push(...expandIcsEvent(current, calendarName, defaultColor, windowStart, windowEnd));
+          }
+          current = null;
+          continue;
+        }
+        if (!current) continue;
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) continue;
+        const propPart = line.slice(0, colonIdx);
+        const valPart = line.slice(colonIdx + 1).trim();
+        const propName = propPart.split(';')[0].toUpperCase();
+
+        if (propName === 'SUMMARY') current.summary = unescapeIcsText(valPart);
+        else if (propName === 'DTSTART') { current.dtstart = valPart; current.dtstartRawProp = propPart; }
+        else if (propName === 'DTEND') current.dtend = valPart;
+        else if (propName === 'CATEGORIES') current.categories = unescapeIcsText(valPart);
+        else if (propName === 'RRULE') current.rrule = valPart;
+        else if (propName === 'UID') current.uid = valPart;
+      }
+      return events;
+    }
+
+    function unescapeIcsText(txt) {
+      return txt.replace(/\\n/gi, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+    }
+
+    function parseIcsDate(val, propMeta = '') {
+      if (!val) return null;
+      if (/^\d{8}$/.test(val) || propMeta.includes('VALUE=DATE')) {
+        return { date: new Date(+val.slice(0, 4), +val.slice(4, 6) - 1, +val.slice(6, 8)), allDay: true };
+      }
+      const m = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
+      if (m) {
+        const [, y, mo, d, hh, mm, ss, isUtc] = m;
+        return {
+          date: isUtc ? new Date(Date.UTC(+y, +mo - 1, +d, +hh, +mm, +ss)) : new Date(+y, +mo - 1, +d, +hh, +mm, +ss),
+          allDay: false
+        };
+      }
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : { date: parsed, allDay: false };
+    }
+
+    function expandIcsEvent(raw, calendarName, defaultColor, windowStart, windowEnd) {
+      const startInfo = parseIcsDate(raw.dtstart, raw.dtstartRawProp || '');
+      if (!startInfo) return [];
+      const category = calendarName || raw.categories || 'Event';
+      const color = defaultColor || 'sky';
+      const isAllDay = startInfo.allDay;
+
+      const make = (d) => ({
+        id: `${raw.uid || raw.summary}_${d.getTime()}`,
+        title: raw.summary,
+        startIso: isAllDay ? formatLocalDateYMD(d) : d.toISOString(),
+        allDay: isAllDay,
+        category,
+        color,
+        isExternal: true
+      });
+
+      const results = [];
+      const baseDate = startInfo.date;
+
+      if (raw.rrule) {
+        const freqMatch = raw.rrule.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i);
+        if (freqMatch) {
+          const freq = freqMatch[1].toUpperCase();
+          const cursor = new Date(baseDate.getTime());
+          let safety = 0;
+          while (cursor <= windowEnd && safety++ < 400) {
+            if (cursor >= windowStart) results.push(make(new Date(cursor)));
+            if (freq === 'DAILY') cursor.setDate(cursor.getDate() + 1);
+            else if (freq === 'WEEKLY') cursor.setDate(cursor.getDate() + 7);
+            else if (freq === 'MONTHLY') cursor.setMonth(cursor.getMonth() + 1);
+            else cursor.setFullYear(cursor.getFullYear() + 1);
+          }
+          return results;
+        }
+      }
+
+      if (baseDate >= windowStart && baseDate <= windowEnd) results.push(make(baseDate));
+      return results;
+    }
+
+    function formatLocalDateYMD(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    async function syncAllCalendars() {
+      const badge = document.getElementById('agenda-source-badge');
+      badge.textContent = 'Syncing…';
+      const combined = [];
+      let activeSources = 0;
+
+      // 1. Fetch enabled public national holidays
+      for (const [key, enabled] of Object.entries(enabledHolidays)) {
+        if (!enabled) continue;
+        const preset = HOLIDAY_PRESETS[key];
+        if (!preset) continue;
+        try {
+          const res = await fetch(`${preset.file}?t=${Date.now()}`);
+          if (res.ok) {
+            const txt = await res.text();
+            combined.push(...parseIcsContent(txt, preset.name, preset.color));
+            activeSources++;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Fetch user connected calendar feeds
+      for (const feed of calendarFeeds) {
+        if (feed.enabled === false) continue;
+        try {
+          const icsText = feed.rawIcsContent || await fetchCalendarWithProxyFallback(feed.url);
+          combined.push(...parseIcsContent(icsText, feed.name, feed.color));
+          activeSources++;
+        } catch (err) {
+          console.warn(`Sync failed for "${feed.name}":`, err);
+        }
+      }
+
+      if (combined.length > 0) {
+        fetchedIcsEvents = combined;
+        try { localStorage.setItem('ipad_dashboard_cached_events', JSON.stringify(fetchedIcsEvents)); } catch (e) {}
+      }
+
+      badge.textContent = `${activeSources || 1} Calendars`;
+      renderAgenda();
+      renderConnectedCalendarsList();
+    }
+
+    // --- Agenda Rendering ---
+    function getAllEvents() {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return [...localEvents, ...fetchedIcsEvents]
+        .map(ev => ({ ...ev, dateObj: ev.allDay ? new Date(ev.startIso + 'T00:00:00') : new Date(ev.startIso) }))
+        .filter(ev => !isNaN(ev.dateObj.getTime()) && ev.dateObj >= startOfToday)
+        .sort((a, b) => a.dateObj - b.dateObj);
+    }
+
+    function renderAgenda() {
+      const container = document.getElementById('agenda-events-container');
+      const countEl = document.getElementById('agenda-count-badge');
+      let all = getAllEvents();
+
+      // Apply filter
+      if (agendaActiveFilter === 'holidays') {
+        all = all.filter(ev => (ev.category || '').toLowerCase().includes('holiday'));
+      } else if (agendaActiveFilter === 'events') {
+        all = all.filter(ev => !(ev.category || '').toLowerCase().includes('holiday'));
+      }
+
+      countEl.textContent = `${all.length} upcoming`;
+
+      if (all.length === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center text-zinc-500 gap-2 py-12">
+            <i data-lucide="calendar-check" class="w-10 h-10 text-zinc-600"></i>
+            <p class="text-base font-bold text-zinc-300">No upcoming events</p>
+            <p class="text-xs text-zinc-500">Tap <strong class="text-sky-400">Calendars</strong> to link Google or Apple Calendar</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      const now = new Date();
+      let html = '';
+      let lastDateKey = '';
+
+      for (const ev of all) {
+        const key = formatLocalDateYMD(ev.dateObj);
+        if (key !== lastDateKey) {
+          const isToday = key === formatLocalDateYMD(now);
+          const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          const isTomorrow = key === formatLocalDateYMD(tomorrow);
+          const dayLabel = isToday ? 'Today' : (isTomorrow ? 'Tomorrow' : ev.dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
+
+          html += `
+            <div class="flex items-baseline gap-2 pt-2 px-1">
+              <span class="text-xs sm:text-sm font-extrabold uppercase tracking-wide ${isToday ? 'text-sky-300' : 'text-zinc-300'}">${dayLabel}</span>
+              ${isToday || isTomorrow ? `<span class="text-xs text-zinc-500">${ev.dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>` : ''}
+            </div>`;
+          lastDateKey = key;
+        }
+
+        const theme = EVENT_COLORS[ev.color] || EVENT_COLORS.sky;
+        const timeLabel = ev.allDay ? 'All day' : ev.dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+        let badge = '';
+        if (!ev.allDay && key === formatLocalDateYMD(now)) {
+          const diffMins = Math.round((ev.dateObj - now) / 60000);
+          if (diffMins >= -45 && diffMins <= 0) {
+            badge = `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-400 text-black">NOW</span>`;
+          } else if (diffMins > 0 && diffMins <= 90) {
+            badge = `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-black">in ${diffMins}m</span>`;
+          }
+        }
+
+        html += `
+          <div class="p-3 rounded-xl card-sub flex items-center justify-between gap-3 border border-[#20202b] hover:border-[#2f2f3d] transition">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="w-1.5 self-stretch rounded-full ${theme.bar} shrink-0"></div>
+              <div class="w-20 shrink-0 font-mono text-xs sm:text-sm font-bold text-zinc-300">${timeLabel}</div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm sm:text-base font-semibold text-white truncate">${escapeHtml(ev.title)}</p>
+                  ${badge}
+                </div>
+                <div class="flex items-center gap-1.5 text-xs ${theme.text} mt-0.5 font-medium">
+                  <span class="w-2 h-2 rounded-full ${theme.dot}"></span>
+                  <span class="truncate">${escapeHtml(ev.category)}</span>
+                </div>
+              </div>
+            </div>
+            ${!ev.isExternal ? `
+              <button data-delete-event="${ev.id}" title="Delete event" class="p-1.5 text-zinc-500 hover:text-rose-400 shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>` : ''}
+          </div>`;
+      }
+
+      container.innerHTML = html;
+      lucide.createIcons();
+
+      container.querySelectorAll('[data-delete-event]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = Number(btn.getAttribute('data-delete-event'));
+          localEvents = localEvents.filter(ev => ev.id !== id);
+          saveLocalEvents();
+        });
+      });
+    }
+
+    // --- Connected Calendars Modal List ---
+    function renderConnectedCalendarsList() {
+      const container = document.getElementById('connected-calendars-list');
+      if (!container) return;
+
+      const items = [];
+
+      // Enabled Holidays
+      for (const [key, enabled] of Object.entries(enabledHolidays)) {
+        if (!enabled) continue;
+        const h = HOLIDAY_PRESETS[key];
+        items.push(`
+          <div class="p-2.5 rounded-xl bg-black border border-[#23232c] flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full ${EVENT_COLORS[h.color].dot}"></span>
+              <div>
+                <p class="text-sm font-bold text-white">${h.name}</p>
+                <p class="text-xs text-zinc-500">Official National Holidays</p>
+              </div>
+            </div>
+            <span class="text-xs text-zinc-400 px-2 py-0.5 rounded-lg bg-zinc-900">National</span>
+          </div>`);
+      }
+
+      // User Connected Feeds
+      for (const feed of calendarFeeds) {
+        const theme = EVENT_COLORS[feed.color] || EVENT_COLORS.sky;
+        items.push(`
+          <div class="p-2.5 rounded-xl bg-black border border-[#23232c] flex items-center justify-between">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-3 h-3 rounded-full ${theme.dot} shrink-0"></span>
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white truncate">${escapeHtml(feed.name)}</p>
+                <p class="text-xs text-zinc-400 truncate">${feed.rawIcsContent ? 'Imported .ics file' : escapeHtml(cleanWebcalUrl(feed.url))}</p>
+              </div>
+            </div>
+            <button data-remove-feed="${feed.id}" class="p-2 text-zinc-400 hover:text-rose-400 shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>`);
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 text-center py-2">No calendars active. Toggle a holiday or connect your calendar above!</p>`;
+        return;
+      }
+
+      container.innerHTML = items.join('');
+      lucide.createIcons();
+
+      container.querySelectorAll('[data-remove-feed]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = Number(btn.getAttribute('data-remove-feed'));
+          calendarFeeds = calendarFeeds.filter(f => f.id !== id);
+          saveCalendarFeeds();
+          syncAllCalendars();
+        });
+      });
+    }
+
+    // --- UI Controls & Modal Wireup ---
+    function setupEventListeners() {
+      // Periodic clock & agenda badge update
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      setInterval(fetchWeather, 15 * 60 * 1000); // 15 min weather
+      setInterval(syncAllCalendars, 15 * 60 * 1000); // 15 min calendar sync
+      setInterval(renderAgenda, 60 * 1000); // update NOW/in Xm badges every minute
+
+      // Manual Refresh
+      document.getElementById('manual-refresh-btn').addEventListener('click', () => {
+        fetchWeather();
+        syncAllCalendars();
+      });
+
+      // WakeLock
+      document.getElementById('wakelock-btn').addEventListener('click', requestScreenWakeLock);
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') await requestScreenWakeLock();
+      });
+
+      // Bedside Mode
+      document.getElementById('bedside-toggle-btn').addEventListener('click', () => {
+        config.bedsideMode = !config.bedsideMode;
+        document.body.classList.toggle('bedside-active', config.bedsideMode);
+        saveConfig();
+      });
+
+      // Fullscreen
+      document.getElementById('fullscreen-btn').addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else if (document.exitFullscreen) document.exitFullscreen();
+      });
+
+      // iPad Guide Modal
+      document.getElementById('ipad-tip-btn').addEventListener('click', () => document.getElementById('ipad-guide-modal').classList.remove('hidden'));
+      document.getElementById('close-ipad-guide-btn').addEventListener('click', () => document.getElementById('ipad-guide-modal').classList.add('hidden'));
+      document.getElementById('ok-ipad-guide-btn').addEventListener('click', () => document.getElementById('ipad-guide-modal').classList.add('hidden'));
+
+      // Location Modal
+      document.getElementById('location-modal-btn').addEventListener('click', () => document.getElementById('location-modal').classList.remove('hidden'));
+      document.getElementById('close-location-modal-btn').addEventListener('click', () => document.getElementById('location-modal').classList.add('hidden'));
+      document.getElementById('city-search-submit-btn').addEventListener('click', () => searchCity(document.getElementById('city-search-input').value));
+      document.getElementById('city-search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') searchCity(e.target.value); });
+      document.getElementById('use-gps-btn').addEventListener('click', useDeviceGPS);
+
+      // Settings Modal
+      document.getElementById('settings-modal-btn').addEventListener('click', () => {
+        document.getElementById('setting-24h-clock').checked = config.is24Hour;
+        document.getElementById('setting-temp-unit').value = config.tempUnit;
+        document.getElementById('setting-show-seconds').checked = config.showSeconds;
+        document.getElementById('setting-burn-in').checked = config.burnInProtection;
+        document.getElementById('settings-modal').classList.remove('hidden');
+      });
+      document.getElementById('close-settings-modal-btn').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
+
+      document.getElementById('setting-24h-clock').addEventListener('change', (e) => { config.is24Hour = e.target.checked; saveConfig(); updateClock(); });
+      document.getElementById('setting-temp-unit').addEventListener('change', (e) => { config.tempUnit = e.target.value; saveConfig(); fetchWeather(); });
+      document.getElementById('setting-show-seconds').addEventListener('change', (e) => { config.showSeconds = e.target.checked; saveConfig(); updateClock(); });
+      document.getElementById('setting-burn-in').addEventListener('change', (e) => { config.burnInProtection = e.target.checked; saveConfig(); });
+
+      // Calendar Modal
+      document.getElementById('open-calendars-modal-btn').addEventListener('click', () => {
+        renderConnectedCalendarsList();
+        document.getElementById('calendar-modal').classList.remove('hidden');
+      });
+      document.getElementById('close-calendar-modal-btn').addEventListener('click', () => document.getElementById('calendar-modal').classList.add('hidden'));
+      document.getElementById('sync-all-calendars-now-btn').addEventListener('click', syncAllCalendars);
+
+      // Color picker
+      document.getElementById('feed-color-picker').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-color]');
+        if (!btn) return;
+        selectedFeedColor = btn.getAttribute('data-color');
+        document.querySelectorAll('#feed-color-picker button').forEach(b => {
+          const isSelected = b.getAttribute('data-color') === selectedFeedColor;
+          b.classList.toggle('ring-2', isSelected);
+          b.classList.toggle('ring-white', isSelected);
+          b.classList.toggle('opacity-50', !isSelected);
+        });
+      });
+
+      // Add Feed Form
+      document.getElementById('add-feed-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('feed-name-input').value.trim();
+        const rawUrl = document.getElementById('feed-url-input').value.trim();
+        if (!name || !rawUrl) return;
+
+        calendarFeeds.push({
+          id: Date.now(),
+          name,
+          url: cleanWebcalUrl(rawUrl),
+          color: selectedFeedColor,
+          enabled: true
+        });
+        saveCalendarFeeds();
+        document.getElementById('feed-name-input').value = '';
+        document.getElementById('feed-url-input').value = '';
+        renderConnectedCalendarsList();
+        await syncAllCalendars();
+      });
+
+      // Direct .ics File Upload
+      document.getElementById('feed-file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const label = document.getElementById('feed-name-input').value.trim() || file.name.replace(/\.ics$/i, '');
+          calendarFeeds.push({
+            id: Date.now(),
+            name: label,
+            url: 'local-file',
+            rawIcsContent: reader.result,
+            color: selectedFeedColor,
+            enabled: true
+          });
+          saveCalendarFeeds();
+          renderConnectedCalendarsList();
+          syncAllCalendars();
+        };
+        reader.readAsText(file);
+      });
+
+      // National Holidays Checkboxes
+      ['jp', 'my', 'sg', 'us', 'uk'].forEach(key => {
+        const box = document.getElementById(`holiday-${key}-checkbox`);
+        if (box) {
+          box.checked = !!enabledHolidays[key];
+          box.addEventListener('change', () => {
+            enabledHolidays[key] = box.checked;
+            saveHolidaySettings();
+            syncAllCalendars();
+          });
+        }
+      });
+
+      // Add Custom Event Modal
+      document.getElementById('open-add-event-btn').addEventListener('click', () => {
+        document.getElementById('event-date-input').value = formatLocalDateYMD(new Date());
+        document.getElementById('add-event-modal').classList.remove('hidden');
+      });
+      document.getElementById('close-add-event-modal-btn').addEventListener('click', () => document.getElementById('add-event-modal').classList.add('hidden'));
+      document.getElementById('cancel-add-event-btn').addEventListener('click', () => document.getElementById('add-event-modal').classList.add('hidden'));
+
+      document.getElementById('custom-event-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('event-title-input').value.trim();
+        const dateStr = document.getElementById('event-date-input').value;
+        const timeStr = document.getElementById('event-time-input').value;
+        const category = document.getElementById('event-category-input').value.trim() || 'Personal';
+        const color = document.getElementById('event-color-select').value;
+        if (!title || !dateStr) return;
+
+        const isAllDay = !timeStr;
+        const startIso = isAllDay ? dateStr : `${dateStr}T${timeStr}:00`;
+
+        localEvents.push({
+          id: Date.now(),
+          title,
+          startIso,
+          allDay: isAllDay,
+          category,
+          color,
+          isExternal: false
+        });
+        saveLocalEvents();
+        document.getElementById('event-title-input').value = '';
+        document.getElementById('event-time-input').value = '';
+        document.getElementById('add-event-modal').classList.add('hidden');
+      });
+
+      // Filter chips
+      document.getElementById('agenda-filter-chips').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-filter]');
+        if (!btn) return;
+        agendaActiveFilter = btn.getAttribute('data-filter');
+        document.querySelectorAll('#agenda-filter-chips button').forEach(b => {
+          const isSel = b.getAttribute('data-filter') === agendaActiveFilter;
+          b.className = isSel
+            ? 'px-3 py-1 rounded-full text-xs font-semibold bg-white text-black'
+            : 'px-3 py-1 rounded-full text-xs font-semibold bg-[#14141c] border border-[#242430] text-zinc-300';
+        });
+        renderAgenda();
+      });
+
+      // Notes form
+      document.getElementById('new-note-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const inp = document.getElementById('new-note-input');
+        const val = inp.value.trim();
+        if (val) {
+          notes.unshift({ id: Date.now(), text: val, completed: false });
+          saveNotes();
+          inp.value = '';
+        }
+      });
+    }
+
+    // --- Screen Wake Lock ---
+    async function requestScreenWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => updateWakeLockBadge(false));
+          updateWakeLockBadge(true);
+        } catch (err) {
+          updateWakeLockBadge(false);
+        }
+      } else {
+        updateWakeLockBadge(false);
+      }
+    }
+
+    function updateWakeLockBadge(active) {
+      const badge = document.getElementById('wakelock-btn');
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full ${active ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}"></span><span>${active ? 'AWAKE' : 'SLEEP'}</span>`;
+      badge.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono border ${active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-zinc-900 border-zinc-700 text-zinc-400'}`;
+    }
+
+    // --- OLED Burn-In Prevention Shift ---
+    function initBurnInProtection() {
+      setInterval(() => {
+        if (!config.burnInProtection) return;
+        const wrapper = document.getElementById('dashboard-wrapper');
+        const x = Math.floor(Math.random() * 5) - 2;
+        const y = Math.floor(Math.random() * 5) - 2;
+        wrapper.style.transform = `translate(${x}px, ${y}px)`;
+      }, 120000);
+    }
+
+    // --- GPS Location Detection ---
+    function useDeviceGPS() {
+      const container = document.getElementById('city-search-results');
+      if (!navigator.geolocation) {
+        container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">Geolocation not supported on this device.</p>`;
+        return;
+      }
+      container.innerHTML = `<p class="text-xs text-sky-400 text-center py-4">Requesting GPS location…</p>`;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          config.location = { name: `Local GPS (${lat.toFixed(2)}, ${lon.toFixed(2)})`, shortName: 'Local GPS', lat, lon };
+          saveConfig();
+          document.getElementById('current-location-text').textContent = config.location.name;
+          document.getElementById('location-modal').classList.add('hidden');
+          fetchWeather();
+        },
+        () => {
+          container.innerHTML = `<p class="text-xs text-rose-400 text-center py-4">GPS permission denied or unavailable.</p>`;
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    // --- Boot sequence ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedState();
+      document.getElementById('current-location-text').textContent = config.location.name;
+      if (config.bedsideMode) document.body.classList.add('bedside-active');
+
+      setupEventListeners();
+      renderNotes();
+      fetchWeather();
+      syncAllCalendars();
+      requestScreenWakeLock();
+      initBurnInProtection();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
