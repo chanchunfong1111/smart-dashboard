@@ -8,120 +8,9 @@ X-WR-TIMEZONE:Asia/Tokyo
 X-WR-CALDESC:This calendar has been created automatically based on your Goo
  gle family
 BEGIN:VEVENT
-DTSTART:20250908T050000Z
-DTEND:20250908T070000Z
-DTSTAMP:20261025T014419Z
-ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
- mily10143415730387905850@group.calendar.google.com
-UID:64pmadb5cdh36b9p75gmab9k6so30b9p6kqjcb9kcks38chhclgm6c1h60@google.com
-ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
- inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
-X-GOOGLE-CONFERENCE:https://meet.google.com/nba-wifn-gpf
-CREATED:20250825T081511Z
-DESCRIPTION:Google Meet に参加: https://meet.google.com/nba-wifn-gpf\n\nMeet の
- 詳細: https://support.google.com/a/users/answer/9282720
-LAST-MODIFIED:20250825T111550Z
-LOCATION:Kasugai Dental Clinic\, 1-chōme-2-1283-1 Asayamachō\, Kasugai\, Ai
- chi 486-0857\, Japan
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Dental clinic
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20261024T080000Z
-DTEND:20261024T110000Z
-DTSTAMP:20261025T014419Z
-UID:c5h36oplckp66b9mcpij0b9kc4q6cbb2coq30b9k6lhj0dphcksjcphnc8@google.com
-CREATED:20261023T004605Z
-LAST-MODIFIED:20261023T004605Z
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Khai Amani visit
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20250821T190000Z
-DTEND:20250821T200000Z
-DTSTAMP:20261025T014419Z
-ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
- mily10143415730387905850@group.calendar.google.com
-UID:6hij0d9n6cojib9m6grjgb9k70s68bb16os34b9i61i38dj271ijcoph6g@google.com
-ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=zi
- lazainal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
-X-GOOGLE-CONFERENCE:https://meet.google.com/sqk-qczk-yao
-CREATED:20250821T091453Z
-DESCRIPTION:Google Meet に参加: https://meet.google.com/sqk-qczk-yao\n\nMeet の
- 詳細: https://support.google.com/a/users/answer/9282720
-LAST-MODIFIED:20250821T091546Z
-LOCATION:Kasugai Dental Clinic\, 1-chōme-2-1283-1 Asayamachō\, Kasugai\, Ai
- chi 486-0857\, Japan
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Dental appointment
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20251005T030000Z
-DTEND:20251005T050000Z
-DTSTAMP:20261025T014419Z
-ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
- mily10143415730387905850@group.calendar.google.com
-UID:chhm8d9o6ko64b9jc4q30b9k6csj6b9o61ijib9p6hhjge1n6thm2pj368@google.com
-ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
- inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
-X-GOOGLE-CONFERENCE:https://meet.google.com/ndz-tohn-wrt
-CREATED:20251002T031502Z
-DESCRIPTION:Google Meet に参加: https://meet.google.com/ndz-tohn-wrt\n\nMeet の
- 詳細: https://support.google.com/a/users/answer/9282720
-LAST-MODIFIED:20251002T063623Z
-LOCATION:ノキシタプレイス\, 5-chōme-8 Fujiyamadai\, Kasugai\, Aichi 487-0035\, Japa
- n
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Badminton
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20250830T010000Z
-DTEND:20250830T020000Z
-DTSTAMP:20261025T014419Z
-ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
- mily10143415730387905850@group.calendar.google.com
-UID:6go3cpj264omcbb571h3eb9k65ij0bb26sqj0b9hckojcdhj75h30cb36s@google.com
-ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
- inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
-X-GOOGLE-CONFERENCE:https://meet.google.com/xuv-ouch-mze
-CREATED:20250825T081125Z
-DESCRIPTION:Things to bring: document and inkan\n\nGoogle Meet に参加: https:/
- /meet.google.com/xuv-ouch-mze\n\nMeet の詳細: https://support.google.com/a/use
- rs/answer/9282720
-LAST-MODIFIED:20250829T085248Z
-LOCATION:D-Plus Nagoya Tenpaku\, 5-chōme-102 Ikeba\, Tempaku Ward\, Nagoya\
- , Aichi 468-0055\, Japan
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:車買取手続き
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20261123T010000Z
-DTEND:20261123T020000Z
-DTSTAMP:20261025T014419Z
-UID:75imcpb668o64bb56ko6cb9k60qj4bb275h6abb36komad9g6gsjiob3c4@google.com
-CREATED:20261023T004654Z
-LAST-MODIFIED:20261023T004655Z
-LOCATION:DENSO Corporation Headquarters\, 1-chōme-1 Shōwachō\, Kariya\, Aic
- hi 448-8661\, Japan
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:健康診断
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
 DTSTART:20250821T042500Z
 DTEND:20250821T052500Z
-DTSTAMP:20261025T014419Z
+DTSTAMP:20261025T015634Z
 ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
  mily10143415730387905850@group.calendar.google.com
 UID:75hjceb669imcb9o6sq34b9k6sp6cbb26orj6b9i6spmacpmc4qj8ohi60@google.com
@@ -137,9 +26,99 @@ SUMMARY:Ayumi health checkup
 TRANSP:OPAQUE
 END:VEVENT
 BEGIN:VEVENT
+DTSTART:20250908T050000Z
+DTEND:20250908T070000Z
+DTSTAMP:20261025T015634Z
+ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
+ mily10143415730387905850@group.calendar.google.com
+UID:64pmadb5cdh36b9p75gmab9k6so30b9p6kqjcb9kcks38chhclgm6c1h60@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
+ inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
+X-GOOGLE-CONFERENCE:https://meet.google.com/nba-wifn-gpf
+CREATED:20250825T081511Z
+DESCRIPTION:Join with Google Meet: https://meet.google.com/nba-wifn-gpf\n\n
+ Learn more about Meet at: https://support.google.com/a/users/answer/9282720
+LAST-MODIFIED:20250825T111550Z
+LOCATION:Kasugai Dental Clinic\, 1-chōme-2-1283-1 Asayamachō\, Kasugai\, Ai
+ chi 486-0857\, Japan
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Dental clinic
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20250821T190000Z
+DTEND:20250821T200000Z
+DTSTAMP:20261025T015634Z
+ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
+ mily10143415730387905850@group.calendar.google.com
+UID:6hij0d9n6cojib9m6grjgb9k70s68bb16os34b9i61i38dj271ijcoph6g@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=zi
+ lazainal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
+X-GOOGLE-CONFERENCE:https://meet.google.com/sqk-qczk-yao
+CREATED:20250821T091453Z
+DESCRIPTION:Join with Google Meet: https://meet.google.com/sqk-qczk-yao\n\n
+ Learn more about Meet at: https://support.google.com/a/users/answer/9282720
+LAST-MODIFIED:20250821T091546Z
+LOCATION:Kasugai Dental Clinic\, 1-chōme-2-1283-1 Asayamachō\, Kasugai\, Ai
+ chi 486-0857\, Japan
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Dental appointment
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20250830T010000Z
+DTEND:20250830T020000Z
+DTSTAMP:20261025T015634Z
+ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
+ mily10143415730387905850@group.calendar.google.com
+UID:6go3cpj264omcbb571h3eb9k65ij0bb26sqj0b9hckojcdhj75h30cb36s@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
+ inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
+X-GOOGLE-CONFERENCE:https://meet.google.com/xuv-ouch-mze
+CREATED:20250825T081125Z
+DESCRIPTION:Things to bring: document and inkan\n\nJoin with Google Meet: h
+ ttps://meet.google.com/xuv-ouch-mze\n\nLearn more about Meet at: https://su
+ pport.google.com/a/users/answer/9282720
+LAST-MODIFIED:20250829T085248Z
+LOCATION:D-Plus Nagoya Tenpaku\, 5-chōme-102 Ikeba\, Tempaku Ward\, Nagoya\
+ , Aichi 468-0055\, Japan
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:車買取手続き
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20251119T010000Z
+DTEND:20251119T020000Z
+DTSTAMP:20261025T015634Z
+UID:6di3acb270o3ib9lcoq3ab9k6cq3abb26cp6cbb3c8rjac9occr3gd1i60@google.com
+CREATED:20251103T001535Z
+LAST-MODIFIED:20251103T001535Z
+LOCATION:DENSO Corporation Headquarters\, 1-chōme-1 Shōwachō\, Kariya\, Aic
+ hi 448-8661\, Japan
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:健康診断
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20261024T080000Z
+DTEND:20261024T110000Z
+DTSTAMP:20261025T015634Z
+UID:c5h36oplckp66b9mcpij0b9kc4q6cbb2coq30b9k6lhj0dphcksjcphnc8@google.com
+CREATED:20261023T004605Z
+LAST-MODIFIED:20261023T004605Z
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Khai Amani visit
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
 DTSTART:20251024T000000Z
 DTEND:20251024T020000Z
-DTSTAMP:20261025T014419Z
+DTSTAMP:20261025T015634Z
 ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
  mily10143415730387905850@group.calendar.google.com
 UID:2AB5EB4004274C0924DBD351DFF20CCD06FFC9AF_0
@@ -161,12 +140,33 @@ SUMMARY:【完全個室サロン】rig'  ladies  salon  ～treatment &spa～の�
 TRANSP:OPAQUE
 END:VEVENT
 BEGIN:VEVENT
-DTSTART:20251119T010000Z
-DTEND:20251119T020000Z
-DTSTAMP:20261025T014419Z
-UID:6di3acb270o3ib9lcoq3ab9k6cq3abb26cp6cbb3c8rjac9occr3gd1i60@google.com
-CREATED:20251103T001535Z
-LAST-MODIFIED:20251103T001535Z
+DTSTART:20251005T030000Z
+DTEND:20251005T050000Z
+DTSTAMP:20261025T015634Z
+ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
+ mily10143415730387905850@group.calendar.google.com
+UID:chhm8d9o6ko64b9jc4q30b9k6csj6b9o61ijib9p6hhjge1n6thm2pj368@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=zilaza
+ inal64@gmail.com;X-NUM-GUESTS=0:mailto:zilazainal64@gmail.com
+X-GOOGLE-CONFERENCE:https://meet.google.com/ndz-tohn-wrt
+CREATED:20251002T031502Z
+DESCRIPTION:Join with Google Meet: https://meet.google.com/ndz-tohn-wrt\n\n
+ Learn more about Meet at: https://support.google.com/a/users/answer/9282720
+LAST-MODIFIED:20251002T063623Z
+LOCATION:ノキシタプレイス\, 5-chōme-8 Fujiyamadai\, Kasugai\, Aichi 487-0035\, Japa
+ n
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Badminton
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20261123T010000Z
+DTEND:20261123T020000Z
+DTSTAMP:20261025T015634Z
+UID:75imcpb668o64bb56ko6cb9k60qj4bb275h6abb36komad9g6gsjiob3c4@google.com
+CREATED:20261023T004654Z
+LAST-MODIFIED:20261023T004655Z
 LOCATION:DENSO Corporation Headquarters\, 1-chōme-1 Shōwachō\, Kariya\, Aic
  hi 448-8661\, Japan
 SEQUENCE:0
@@ -177,7 +177,7 @@ END:VEVENT
 BEGIN:VEVENT
 DTSTART:20261113T013000Z
 DTEND:20261113T023000Z
-DTSTAMP:20261025T014419Z
+DTSTAMP:20261025T015634Z
 ORGANIZER;CN=family10143415730387905850@group.calendar.google.com:mailto:fa
  mily10143415730387905850@group.calendar.google.com
 UID:c4sm4e1nc8ojcb9pchi34b9k70s68bb270p68bb6c5hjap9jc9hjcd1oc8@google.com
